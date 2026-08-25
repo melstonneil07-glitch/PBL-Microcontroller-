@@ -9,13 +9,21 @@
 
 ## 3.Project Scope:
 **1.Simulate the basic architecture and operation of the assigned 8-bit microcontroller.**
+
 **2.Implement a selected set of instructions and demonstrate their execution.**
+
 **3.Simulate program memory, data memory, registers, and stack operations.**
+
 **4.Provide simplified GPIO, timer, and interrupt functionality.**
+
 **5.Support multiple programs as processes using PCB and ready queue.**
+
 **6.Implement FCFS, Round Robin, and Priority scheduling.**
+
 **7.Demonstrate context switching between processes.**
+
 **8.Provide a simple interface to visualize instruction execution and CPU scheduling.**
+
 **9.The simulator will focus on educational purposes and will not implement the complete real-world microcontroller.**
 
 ## 4.Microcontroller Being Simulated:
