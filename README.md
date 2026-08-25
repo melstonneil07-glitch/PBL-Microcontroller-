@@ -2,7 +2,7 @@
 # Microcontroller Simulator
 
 ## 1.Project Objective:
-Educational Microcontroller Simulator with Process Scheduling
+### Educational Microcontroller Simulator with Process Scheduling
 ## 2.Problem Statement:
 
 ## 3.Project Scope:
