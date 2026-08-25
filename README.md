@@ -23,11 +23,8 @@
 
 ## 5.Team Members:
 **1.Melston Neil Albuquerque(Team Leader)**
-
 **2.Disha N Poojary**
-
 **3.Vaishnavi**
-
 **4.Nishchith Srinivasa Shetty**
 
 ## 6.Team responsibilities:
