@@ -45,11 +45,11 @@
 <img width="1422" height="901" alt="image" src="https://github.com/user-attachments/assets/9a7dec92-a18c-4d5a-9927-ce6e9c84c5c1" />
 
 ## 9. Initial Development Plan:
-1. **Microcontroller Study** – Study the MS51FB9AE architecture, registers, memory, stack, instructions, GPIO, timer, and interrupts.
-2. **System Design** – Design the simulator architecture and define the CPU, memory, peripheral, and process-management components.
-3. **CPU & Instruction Execution** – Implement registers, program counter, instruction decoding, and selected instructions.
-4. **Memory & Peripherals** – Implement program/data memory, stack, GPIO, timer, and basic interrupt handling.
-5. **Process Management** – Implement PCB, ready queue, process creation, and context switching.
-6. **CPU Scheduling** – Implement FCFS, Round Robin, and Priority scheduling algorithms.
-7. **User Interface** – Develop a simple Java-based interface to visualize instruction execution and process scheduling.
-8. **Integration & Testing** – Integrate all modules, test individual components, fix errors, and document the project.
+1. **Microcontroller Study** –**Study the MS51FB9AE architecture, registers, memory, stack, instructions, GPIO, timer, and interrupts.**
+2. **System Design** –**Design the simulator architecture and define the CPU, memory, peripheral, and process-management components.**
+3. **CPU & Instruction Execution** –**Implement registers, program counter, instruction decoding, and selected instructions.**
+4. **Memory & Peripherals** –**Implement program/data memory, stack, GPIO, timer, and basic interrupt handling.**
+5. **Process Management** –**Implement PCB, ready queue, process creation, and context switching.**
+6. **CPU Scheduling** –**Implement FCFS, Round Robin, and Priority scheduling algorithms.**
+7. **User Interface** –**Develop a simple Java-based interface to visualize instruction execution and process scheduling.**
+8. **Integration & Testing** –**Integrate all modules, test individual components, fix errors, and document the project.**
