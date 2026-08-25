@@ -19,12 +19,27 @@
 ### 9.The simulator will focus on educational purposes and will not implement the complete real-world microcontroller.
 
 ## 4.Microcontroller Being Simulated:
+### Nuvoton MS51FB9AE, an 8-bit 8051-based microcontroller.
 
 ## 5.Team Members:
+### 1.Melston Neil Albuquerque(Team Leader)
+### 2.Disha N Poojary
+### 3.Vaishnavi
+### 4.Nishchith Srinivasa Shetty
 
 ## 6.Team responsibilities:
+### Team Responsibilities:
+
+| Member                                     | Primary Responsibility                   | Supporting Responsibility     |
+| ------------------------------------------ | ---------------------------------------- | ----------------------------- |
+| **Melston Neil Albuquerque — Team Leader** | **CPU & Instruction Execution**          | **Integration & GitHub**      |
+| **Disha N Poojary**                        | **Memory & Stack**                       | **CPU Support**               |
+| **Vaishnavi**                              | **Data Structures & Process Management** | **Testing**                   |
+| **Nishchith Srinivasa Shetty**             | **OS Scheduling & Context Switching**    | **UI & Integration**          |
 
 ## 7. Selected Programming Language:
+### Java:
+### Java is selected because it provides strong support for object-oriented programming, data structures, process management, scheduling algorithms, and GUI development. It will be used to implement the microcontroller simulator and visualize instruction execution, memory operations, peripherals, and CPU scheduling.
 
 ## 8. Initial System Architecture:
 
