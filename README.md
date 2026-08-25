@@ -42,5 +42,6 @@
 ### Java is selected because it provides strong support for object-oriented programming, data structures, process management, scheduling algorithms, and GUI development. It will be used to implement the microcontroller simulator and visualize instruction execution, memory operations, peripherals, and CPU scheduling.
 
 ## 8. Initial System Architecture:
+<img width="1422" height="901" alt="image" src="https://github.com/user-attachments/assets/9a7dec92-a18c-4d5a-9927-ce6e9c84c5c1" />
 
 ## 9. Initial Development Plan:
