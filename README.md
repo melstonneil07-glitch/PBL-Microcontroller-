@@ -23,8 +23,11 @@
 
 ## 5.Team Members:
 **1.Melston Neil Albuquerque(Team Leader)**
+
 **2.Disha N Poojary**
+
 **3.Vaishnavi**
+
 **4.Nishchith Srinivasa Shetty**
 
 ## 6.Team responsibilities:
@@ -39,6 +42,7 @@
 
 ## 7. Selected Programming Language:
 **Java:**
+
 **Java is selected because it provides strong support for object-oriented programming, data structures, process management, scheduling algorithms, and GUI development. It will be used to implement the microcontroller simulator and visualize instruction execution, memory operations, peripherals, and CPU scheduling.**
 
 ## 8. Initial System Architecture:
