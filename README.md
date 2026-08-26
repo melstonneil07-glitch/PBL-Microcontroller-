@@ -64,3 +64,4 @@
 5. **Process Management** –**Implement PCB, ready queue, process creation, and context switching.**
 6. **CPU Scheduling** –**Implement FCFS, Round Robin, and Priority scheduling algorithms.**
 7. **User Interface** –**Develop a simple Java-based interface to visualize instruction execution and process scheduling.**
+8. **Integration & Testing** –**Integrate all modules, test individual components, fix errors, and document the project.**
