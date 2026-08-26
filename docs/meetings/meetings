@@ -1,8 +1,27 @@
-Date:
-Meeting:
-Participants:
+Date:27-08-2026
+Meeting Number:1
+Participants:4
+
 Agenda:
+Dividing responsibilities within the team.
+Deciding programming language.
+Discussing the simulation of our assigned Microocontroller.
+
 Discussion:
+Team discussed which programming language to use.
+Team decided to use Java programming language.
+
 Decisions:
+1.Team decided to use Java.
+2.Melston Neil Albuquerque handles CPU & Instruction Execution.
+3.Disha N Poojary handles Memory & Stack.
+4.Vaishnavi handles Data Structures & Process Management.
+5.Nishchith Srinivasa Shetty handles OS Scheduling & Context Switching.
+
 Action items:
-Next meeting:
+1.Melston Neil Albuquerque → CPU & Instruction Execution
+2.Disha N Poojary → Memory & Stack
+3.Vaishnavi → Data Structures & Process Management
+4.Nishchith Srinivasa Shetty → OS Scheduling & Context Switching
+
+Next meeting:28-08-2026
