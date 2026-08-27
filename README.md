@@ -5,7 +5,8 @@
 **Educational Microcontroller Simulator with Process Scheduling**
 
 ## 2.Problem Statement:
-**Design and implement a simplified software-based simulator for the assigned 8-bit microcontroller. The simulator will demonstrate instruction execution, memory and stack management, GPIO, timer, and interrupt operations. It will also support multiple processes using PCBs, ready queues, context switching, and FCFS, Round Robin, and Priority scheduling algorithms.**
+**Develop a simplified educational microcontroller simulator that demonstrates instruction execution, memory and peripheral operations, and process management. The project should integrate Microprocessor Architecture, Data Structures, and Operating Systems concepts into a single working system. The simulator should help users visualize how programs are executed and how CPU scheduling manages multiple programs.Problem Statement
+Design and implement a software-based simulator for the assigned 8-bit microcontroller processor. The simulator shall model the essential processor components, execute a defined subset of its instructions, manage program memory, data memory and stack, and provide simplified GPIO, timer, and interrupt functionality. The simulator shall also support multiple programs as processes using appropriate data structures, a Process Control Block (PCB), ready queue, context switching, and the FCFS, Round Robin, and Priority CPU scheduling algorithms.**
 
 ## 3.Project Scope:
 **1.Simulate the basic architecture and operation of the assigned 8-bit microcontroller.**
