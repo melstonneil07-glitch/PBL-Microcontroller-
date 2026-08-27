@@ -55,42 +55,6 @@ Design and implement a software-based simulator for the assigned 8-bit microcont
 **Java is selected because it provides strong support for object-oriented programming, data structures, process management, scheduling algorithms, and GUI development. It will be used to implement the microcontroller simulator and visualize instruction execution, memory operations, peripherals, and CPU scheduling.**
 
 ## 8. Initial System Architecture:
-flowchart TB
-
-    %% Keil µVision IDE
-    subgraph KEIL["Keil µVision IDE"]
-        direction LR
-        CODE["Disassembly & Code<br/>Windows"]
-        WATCH["Watch & Register<br/>Tracking"]
-    end
-
-    %% Device Simulation Engine
-    subgraph SIM["Device Simulation Engine"]
-        direction TB
-
-        subgraph CORE["1T 8051 Core Simulator"]
-            ISA["Instruction Set Architecture<br/>(ISA) Decoder"]
-            TIMING["Cycle-Accurate Timing Engine<br/>(Up to 24 MHz)"]
-        end
-
-        subgraph PERIPH["Virtual Peripheral Layer (AGSI / Drivers)"]
-            MEMORY["Memory Map<br/>16KB APROM<br/>1KB XRAM<br/>256B RAM"]
-            REG["Virtual Registers<br/>(SFRs, VTREGs)"]
-            PERIPHERALS["Timers<br/>2× UART<br/>SPI<br/>I²C<br/>12-bit ADC<br/>16-bit PWM"]
-        end
-    end
-
-    %% Stimulus and Logic Scripts
-    subgraph STIM["Stimulus & Logic Scripts"]
-        SIGNAL["Signal Functions<br/>(External I/O Pin Toggling)"]
-        VTREG["VTREG Command Scripts<br/>(e.g., Injecting Serial Data)"]
-    end
-
-    %% Connections
-    CODE --> SIM
-    WATCH --> SIM
-
-    STIM --> SIM
 
 ## 9. Initial Development Plan:
 **1.Microcontroller Study** –**Study the MS51FB9AE architecture, registers, memory, stack, instructions, GPIO, timer, and interrupts.**
