@@ -1,16 +1,13 @@
-//ide files
 .vscode/
 .idea/
 *.iml
 
-//temporary files
 *.tmp
 *.temp
 *.swp
 *.swo
 *~
 
-//build files
 build/
 dist/
 out/
@@ -18,42 +15,35 @@ target/
 bin/
 obj/
 
-//cache files
 .cache/
 __pycache__/
 *.pyc
 .pytest_cache/
 .mypy_cache/
 
-//log and generated files
 *.log
 *.generated
 coverage/
 *.coverage
 
-//operating system files
 .DS_Store
 Thumbs.db
 Desktop.ini
 
-//environment files
 .env
 .env.*
 !.env.example
 
-//node.js files
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
 
-python virtual environment files
 *.egg-info/
 .venv/
 venv/
 env/
 
-//java com
 *.class
 
 *.o
@@ -61,4 +51,5 @@ env/
 *.exe
 *.dll
 
+//jupyter notebook checkpoints
 .ipynb_checkpoints/
