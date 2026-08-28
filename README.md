@@ -60,3 +60,5 @@ Design and implement a software-based simulator for the assigned 8-bit microcont
 ## 9. Initial Development Plan:
 **Week 1 – Project Setup and Planning:**
 **Set up the public GitHub repository and folder structure, study the MS51FB9AE microcontroller architecture, finalize Java as the programming language, assign team responsibilities, design the initial simulator architecture, create relevant GitHub Issues, and complete the required project documentation and Week-1 review.**
+
+
