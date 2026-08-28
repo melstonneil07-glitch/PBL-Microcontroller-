@@ -25,4 +25,7 @@ Work Not Completed / Pending:
 2.Detailed instruction implementation.
 
 Carry forward to Week 2:
-1. Hardware layer implementation.
+1.Implementation of cpu registers,data structures,memory model and GPIO.
+2.Developing basic process management.
+3.Improving the simulator architecture.
+4.Continue documenting the project and maintaining github issues.
