@@ -12,7 +12,7 @@ Work Tested:
 1.Checked that all team members can access the repository.
 2.Checked that the repository is public.
 3.Team reviewed the README.md file.
-4.Team reviewed the architecture diagram.
+4.Team reviewed the modular architecture.
 
 Work accepted:
 1.Initial simulator architecture.
@@ -26,6 +26,5 @@ Work Not Completed / Pending:
 
 Carry forward to Week 2:
 1.Implementation of cpu registers,data structures,memory model and GPIO.
-2.Developing basic process management.
-3.Improving the simulator architecture.
-4.Continue documenting the project and maintaining github issues.
+2.Improving the simulator architecture.
+3.Continue documenting the project and maintaining github issues.
