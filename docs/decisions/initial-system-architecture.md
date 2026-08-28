@@ -43,7 +43,7 @@
 **2. 1 KB Internal SRAM and Stack**
 
 ## 3.Peripheral Emulation:
-**1. Peripheral Emulation**
+**1. GPIO Ports: P0, P1, P2, P3**
 
 **2. 16-bit Timers: Timer 0, Timer 1, Timer 2**
 
