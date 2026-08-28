@@ -58,18 +58,5 @@ Design and implement a software-based simulator for the assigned 8-bit microcont
 <img width="1891" height="800" alt="Screenshot_27-8-2026_212120_" src="https://github.com/user-attachments/assets/8b021ea5-ce7f-43e4-9e5b-f746bd6949e2" />
 
 ## 9. Initial Development Plan:
-**1.Microcontroller Study** –**Study the MS51FB9AE architecture, registers, memory, stack, instructions, GPIO, timer, and interrupts.**
-
-**2.System Design** –**Design the simulator architecture and define the CPU, memory, peripheral, and process-management components.**
-
-**3.CPU & Instruction Execution** –**Implement registers, program counter, instruction decoding, and selected instructions.**
-
-**4.Memory & Peripherals** –**Implement program/data memory, stack, GPIO, timer, and basic interrupt handling.**
-
-**5.Process Management** –**Implement PCB, ready queue, process creation, and context switching.**
-
-**6.CPU Scheduling** –**Implement FCFS, Round Robin, and Priority scheduling algorithms.**
-
-**7.User Interface** –**Develop a simple Java-based interface to visualize instruction execution and process scheduling.**
-
-**8.Integration & Testing** –**Integrate all modules, test individual components, fix errors, and document the project.**
+**Week 1 – Project Setup and Planning:**
+**Set up the public GitHub repository and folder structure, study the MS51FB9AE microcontroller architecture, finalize Java as the programming language, assign team responsibilities, design the initial simulator architecture, create relevant GitHub Issues, and complete the required project documentation and Week-1 review.**
