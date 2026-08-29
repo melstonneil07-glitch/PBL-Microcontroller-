@@ -13,9 +13,31 @@
 
 # 1.User Interface & Controls:
 ## The UI module will contain:
-**1. Control Panel – provides Run, Single-Step, and Reset controls.**
+**1. Control Panel: provides Run, Single-Step, and Reset controls.**
 
-**2. ive State & Performance Visualizer – displays the current simulator state and performance information.**
+**Run – starts the execution of the loaded program.**
+
+**Single-Step – executes one instruction at a time, which helps the user understand instruction execution.**
+
+**Reset – resets the CPU and simulator state to its initial condition.**
+
+**2. live State & Performance Visualizer – displays the current simulator state and performance information.**
+
+**It can be used to show:**
+
+**1. Current CPU state**
+
+**2. Register values**
+
+**3. Program Counter**
+
+**4. Stack Pointer**
+
+**5. Current instruction**
+
+**6. Process/scheduling information**
+
+**7. Basic performance information**
 
 # 2.OS & Process Management:
 ## The OS subsystem will contain:
