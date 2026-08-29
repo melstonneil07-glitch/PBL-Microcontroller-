@@ -42,6 +42,8 @@
 **The visualizer will help users understand what is happening inside the simulated microcontroller.**
 
 # 2.OS & Process Management:
+**This subsystem handles the Operating System concepts included in the project. It manages processes and determines which process should receive CPU time.**
+
 ## The OS subsystem will contain:
 
 **1. Process Manager & PCB Generator – manages processes and their process control information.**
@@ -54,21 +56,71 @@
 
 # 3.MS51FB9AE Hardware Simulation:
 ## The hardware simulation will contain three main parts:
-## 1.CPU Core:
-**1. Registers: A, B, PSW, PC, SP, R0–R7**
+## 1. 8051 CPU Core:
+**1. Registers:**
 
-**2. Instruction Decoder**
+**The architecture includes:**
 
-**3. Fetch-Execute Loop**
+**A (Accumulator) – used during many arithmetic and logical operations.**
+**B Register – used by certain arithmetic operations.**
+**PSW (Program Status Word) – stores status/flag information.**
+**PC (Program Counter) – keeps track of the program execution position.**
+**SP (Stack Pointer) – manages the stack.**
+**R0–R7 – general-purpose registers.**
+
+**The simulator will maintain the values of these registers during program execution.**
+
+**2. Instruction Decoder:**
+
+**The Instruction Decoder will identify what operation an instruction represents.**
+
+**3. Fetch-Execute Loop:**
+
+**The simulator will fetch an instruction, decode it, and then execute the corresponding operation.**
+
+**Detailed instruction implementation is planned for later development.**
 
 ## 2.Memory Space:
-**1. 16 KB Flash ROM for program/code storage**
+**The Memory module represents the memory used by the simulated microcontroller.**
 
-**2. 1 KB Internal SRAM and Stack**
+**Flash ROM:**
+
+**The architecture represents 16 KB Flash ROM for storing program/code instructions.**
+
+**The simulator will use this area to represent the program that the CPU needs to execute.**
+
+**Internal SRAM & Stack:**
+
+**The architecture represents 1 KB Internal SRAM for temporary data storage.**
+
+**The stack will use the appropriate memory area and will be managed using the Stack Pointer.**
 
 ## 3.Peripheral Emulation:
-**1. GPIO Ports: P0, P1, P2, P3**
+**The Peripheral module represents hardware peripherals that interact with the CPU.**
 
-**2. 16-bit Timers: Timer 0, Timer 1, Timer 2**
+**GPIO:**
 
-**3. Interrupt Controller and Vectors**
+**The simulator will represent the GPIO ports:**
+
+**P0**
+**P1**
+**P2**
+**P3**
+
+**GPIO simulation will allow the project to demonstrate basic input/output operations.**
+
+**Timers:**
+
+**The architecture includes:**
+
+**Timer 0**
+**Timer 1**
+**Timer 2**
+
+**These will be used to represent timer-related operations in the simulator.**
+
+**Interrupt Controller:**
+
+**The Interrupt Controller will represent the handling of interrupts and their corresponding vectors.**
+
+**When an interrupt occurs, the simulator can later transfer control to the appropriate interrupt-handling mechanism.**
