@@ -39,6 +39,8 @@
 
 **7. Basic performance information**
 
+**The visualizer will help users understand what is happening inside the simulated microcontroller.**
+
 # 2.OS & Process Management:
 ## The OS subsystem will contain:
 
