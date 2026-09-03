@@ -55,7 +55,7 @@ Design and implement a software-based simulator for the assigned 8-bit microcont
 **Java is selected because it provides strong support for object-oriented programming, data structures, process management, scheduling algorithms, and GUI development. It will be used to implement the microcontroller simulator and visualize instruction execution, memory operations, peripherals, and CPU scheduling.**
 
 ## 8. Initial System Architecture:
-<img width="1891" height="800" alt="Screenshot_27-8-2026_212120_" src="https://github.com/user-attachments/assets/8b021ea5-ce7f-43e4-9e5b-f746bd6949e2" />
+<img width="3088" height="1224" alt="mermaid-diagram (1)" src="https://github.com/user-attachments/assets/b098fa3d-e5a3-4ecc-a369-6a32f8fdd38b" />
 
 ## 9. Initial Development Plan:
 **Week 1 – Project Setup and Planning:**
