@@ -1,6 +1,4 @@
-import memory.DataMemory;
-import memory.ProgramMemory;
-import memory.StackMemory;
+package memory;
 
 public class MemoryTest {
     public static void main(String[] args) {
