@@ -29,5 +29,14 @@ public class MemoryTest {
         } else {
             System.out.println("Stack Memory Test: FAIL");
         }
+        // Test Stack Peek
+stackMemory.push((byte) 10);
+stackMemory.push((byte) 20);
+
+if (stackMemory.peek() == 20) {
+    System.out.println("Stack Peek Test: PASS");
+} else {
+    System.out.println("Stack Peek Test: FAIL");
+}
     }
 }
