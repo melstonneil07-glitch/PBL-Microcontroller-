@@ -64,4 +64,23 @@ public class ProgramPanel extends JPanel {
         programList.setSelectedIndex(address);
         programList.ensureIndexIsVisible(address);
     }
+    public void showNextInstruction(
+    int address,
+    ArrayList<Instruction> program
+) {
+    if (address >= 0 && address < program.size()) {
+        currentInstructionLabel.setText(
+            "Next Instruction: " + program.get(address).toString()
+        );
+
+        programList.setSelectedIndex(address);
+        programList.ensureIndexIsVisible(address);
+    } else {
+        currentInstructionLabel.setText(
+            "Next Instruction: None (Program Halted)"
+        );
+
+        programList.clearSelection();
+    }
+}
 }
