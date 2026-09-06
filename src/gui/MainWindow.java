@@ -63,6 +63,7 @@ public class MainWindow extends JFrame {
     add(middlePanel, BorderLayout.CENTER);
     add(bottomPanel, BorderLayout.SOUTH);
 }
+
     private void connectButtons() {
         controlPanel.getLoadButton().addActionListener(e -> loadProgram());
         controlPanel.getResetButton().addActionListener(e -> resetCpu());
@@ -110,7 +111,7 @@ public class MainWindow extends JFrame {
         programLoaded = true;
         tracePanel.clearTrace();
         programPanel.showProgram(program);
-        programPanel.showCurrentInstruction(-1, null);
+        programPanel.showNextInstruction(cpu.getPC(), program);
 
         cpuStatePanel.updateState(cpu, "Ready");
         statusBar.setText(" Program loaded successfully.");
@@ -167,7 +168,7 @@ public class MainWindow extends JFrame {
         String state = cpu.isRunning() ? "Running" : "Halted";
 
         cpuStatePanel.updateState(cpu, state);
-        programPanel.showCurrentInstruction(beforePC, instruction);
+        programPanel.showNextInstruction(cpu.getPC(), program);
 
         if (!cpu.isRunning()) {
             stopRunningProgram();
