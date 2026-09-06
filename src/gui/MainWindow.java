@@ -49,18 +49,20 @@ public class MainWindow extends JFrame {
     }
 
     private void createLayout() {
-        setLayout(new BorderLayout(8, 8));
+    setLayout(new BorderLayout(8, 8));
 
-        JPanel middlePanel = new JPanel(new GridLayout(1, 2, 8, 8));
-        middlePanel.add(programPanel);
-        middlePanel.add(cpuStatePanel);
+    JPanel middlePanel = new JPanel(new GridLayout(1, 2, 8, 8));
+    middlePanel.add(programPanel);
+    middlePanel.add(cpuStatePanel);
 
-        add(tracePanel, BorderLayout.NORTH);
-        add(middlePanel, BorderLayout.CENTER);
-        add(controlPanel, BorderLayout.SOUTH);
-        add(statusBar, BorderLayout.PAGE_END);
-    }
+    JPanel bottomPanel = new JPanel(new BorderLayout());
+    bottomPanel.add(controlPanel, BorderLayout.CENTER);
+    bottomPanel.add(statusBar, BorderLayout.SOUTH);
 
+    add(tracePanel, BorderLayout.NORTH);
+    add(middlePanel, BorderLayout.CENTER);
+    add(bottomPanel, BorderLayout.SOUTH);
+}
     private void connectButtons() {
         controlPanel.getLoadButton().addActionListener(e -> loadProgram());
         controlPanel.getResetButton().addActionListener(e -> resetCpu());
