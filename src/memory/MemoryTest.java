@@ -29,14 +29,26 @@ public class MemoryTest {
         } else {
             System.out.println("Stack Memory Test: FAIL");
         }
-        // Test Stack Peek
-stackMemory.push((byte) 10);
-stackMemory.push((byte) 20);
-
-if (stackMemory.peek() == 20) {
-    System.out.println("Stack Peek Test: PASS");
-} else {
-    System.out.println("Stack Peek Test: FAIL");
-}
+        //Test Stack Peek
+       stackMemory.push((byte) 10);
+       stackMemory.push((byte) 20);
+       if (stackMemory.peek() == 20) {
+        System.out.println("Stack Peek Test: PASS");
+    } else {
+         System.out.println("Stack Peek Test: FAIL");
+        }
+        // Test Stack Order
+        if (stackMemory.pop() == 20 && stackMemory.pop() == 10) {
+             System.out.println("Stack Order Test: PASS");
+            } else {
+                System.out.println("Stack Order Test: FAIL");
+            }
+            // Test invalid Data Memory address
+            try {
+                 dataMemory.read(256);
+                 System.out.println("Invalid Data Memory Test: FAIL");
+                } catch (IllegalArgumentException e) {
+                    System.out.println("Invalid Data Memory Test: PASS");
+                }
     }
 }
