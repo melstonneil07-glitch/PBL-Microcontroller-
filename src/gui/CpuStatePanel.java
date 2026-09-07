@@ -1,68 +1,120 @@
 package gui;
 
 import cpu_core.CPU;
-import java.awt.GridLayout;
-import javax.swing.BorderFactory;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
+
+import javax.swing.*;
+import java.awt.*;
 
 public class CpuStatePanel extends JPanel {
 
-    private JLabel statusLabel;
-    private JLabel pcLabel;
-    private JLabel spLabel;
-    private JLabel aLabel;
-    private JLabel bLabel;
-    private JLabel cyLabel;
-    private JLabel ovLabel;
-    private JLabel[] registerLabels;
+    private JLabel a;
+    private JLabel b;
+    private JLabel psw;
+    private JLabel pc;
+    private JLabel sp;
+
+    private JLabel[] registers;
+
+    private JLabel cy;
+    private JLabel ov;
+    private JLabel status;
 
     public CpuStatePanel() {
-        setBorder(BorderFactory.createTitledBorder("CPU State"));
-        setLayout(new GridLayout(0, 2, 10, 5));
 
-        statusLabel = new JLabel("Status: Not loaded");
-        pcLabel = new JLabel("PC: 0000");
-        spLabel = new JLabel("SP: 07");
-        aLabel = new JLabel("A: 00");
-        bLabel = new JLabel("B: N/A");
-        cyLabel = new JLabel("CY: 0");
-        ovLabel = new JLabel("OV: 0");
+        setBorder(
+                BorderFactory.createTitledBorder(
+                        "MS51FB9AE CPU STATE"
+                )
+        );
 
-        add(statusLabel);
-        add(new JLabel(""));
-        add(pcLabel);
-        add(spLabel);
-        add(aLabel);
-        add(bLabel);
+        setLayout(
+                new GridLayout(0, 2, 5, 5)
+        );
 
-        registerLabels = new JLabel[8];
+        a = new JLabel("A : 00H");
+        b = new JLabel("B : 00H");
+        psw = new JLabel("PSW : 00H");
+        pc = new JLabel("PC : 0000H");
+        sp = new JLabel("SP : 07H");
+
+        cy = new JLabel("CY : 0");
+        ov = new JLabel("OV : 0");
+        status = new JLabel("Status : Ready");
+
+        registers = new JLabel[8];
 
         for (int i = 0; i < 8; i++) {
-            registerLabels[i] = new JLabel("R" + i + ": 00");
-            add(registerLabels[i]);
+
+            registers[i] =
+                    new JLabel("R" + i + " : 00H");
         }
 
-        add(cyLabel);
-        add(ovLabel);
-    }
+        add(a);
+        add(b);
 
-    public void updateState(CPU cpu, String status) {
-        statusLabel.setText("Status: " + status);
-        pcLabel.setText("PC: " + String.format("%04X", cpu.getPC()));
-        spLabel.setText("SP: " + String.format("%02X", cpu.getSP()));
-        aLabel.setText("A: " + String.format("%02X", cpu.getA()));
+        add(psw);
+        add(pc);
 
-        // The current CPU class does not contain a B register/getB() method.
-        bLabel.setText("B: N/A");
+        add(sp);
+        add(cy);
+
+        add(ov);
+        add(status);
 
         for (int i = 0; i < 8; i++) {
-            registerLabels[i].setText(
-                "R" + i + ": " + String.format("%02X", cpu.getR(i))
+            add(registers[i]);
+        }
+    }
+
+    public void updateState(
+            CPU cpu,
+            String state
+    ) {
+
+        a.setText(
+                String.format(
+                        "A : %02XH",
+                        cpu.getA()
+                )
+        );
+
+        pc.setText(
+                String.format(
+                        "PC : %04XH",
+                        cpu.getPC()
+                )
+        );
+
+        sp.setText(
+                String.format(
+                        "SP : %02XH",
+                        cpu.getSP()
+                )
+        );
+
+        cy.setText(
+                "CY : "
+                        + (cpu.isCY() ? "1" : "0")
+        );
+
+        ov.setText(
+                "OV : "
+                        + (cpu.isOV() ? "1" : "0")
+        );
+
+        for (int i = 0; i < 8; i++) {
+
+            registers[i].setText(
+                    String.format(
+                            "R%d : %02XH",
+                            i,
+                            cpu.getR(i)
+                    )
             );
         }
 
-        cyLabel.setText("CY: " + (cpu.isCY() ? "1" : "0"));
-        ovLabel.setText("OV: " + (cpu.isOV() ? "1" : "0"));
+        status.setText(
+                "Status : " + state
+        );
     }
 }
