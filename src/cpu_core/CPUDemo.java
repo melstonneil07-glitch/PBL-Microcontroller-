@@ -16,14 +16,14 @@ public class CPUDemo {
     public static void main(String[] args) {
         ArrayList<Instruction> program = new ArrayList<>();
         program.add(new Instruction("MOV_A_DATA", Arrays.asList("10")));
-        program.add(new Instruction("MOV_DIRECT_A", Arrays.asList("48"))); 
+        program.add(new Instruction("MOV_DIRECT_A", Arrays.asList("48"))); // 0x30 = 48
         program.add(new Instruction("ADD", Arrays.asList("R1")));
         program.add(new Instruction("INC", Arrays.asList("R1")));
         program.add(new Instruction("HALT", Collections.emptyList()));
 
         CPU cpu = new CPU();
         cpu.loadProgram(program);
-        cpu.setR(1, 3); 
+        cpu.setR(1, 3); // preload R1 so ADD A,R1 has a visible effect
 
         System.out.println("Starting FETCH -> DECODE -> EXECUTE trace\n");
 
@@ -35,14 +35,16 @@ public class CPUDemo {
             System.out.println("FETCH  \u2713  " + fetched + "  @PC=" + beforePC);
 
             Instruction decoded = cpu.decode(fetched);
-            System.out.println("DECODE \u2713  recognized instruction");
+            String category = cpu.getInstructionCategory(decoded.mnemonic);
+            System.out.println("DECODE \u2713  recognized instruction  [" + category + "]");
 
             cpu.execute(decoded);
             System.out.println("EXECUTE\u2713");
 
             System.out.println("Result: A " + beforeA + " -> " + cpu.getA()
                                 + " | PC " + beforePC + " -> " + cpu.getPC()
-                                + " | CY=" + cpu.isCY() + " OV=" + cpu.isOV());
+                                + " | CY=" + cpu.isCY() + " OV=" + cpu.isOV()
+                                + " | SP=0x" + Integer.toHexString(cpu.getSP()));
             System.out.println("--------------------------------------------------");
         }
 

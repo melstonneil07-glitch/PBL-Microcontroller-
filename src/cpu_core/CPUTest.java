@@ -25,6 +25,7 @@ public class CPUTest {
         testInc();
         testSjmp();
         testHalt();
+        testStackResetOnReset();
         testDemoProgram();
 
         System.out.println("--------------------------------------------------------------------------");
@@ -148,7 +149,14 @@ public class CPUTest {
         check("TC08", "HALT", "false", cpu.isRunning());
     }
 
-    // TC09: Full demonstration program from PBL.md
+    // TC09: reset() puts the stack pointer back to its 8051 power-on value (0x07)
+    private static void testStackResetOnReset() {
+        CPU cpu = new CPU();
+        cpu.reset();
+        check("TC09", "reset() -> SP", "7", cpu.getSP());
+    }
+
+    // TC10: Full demonstration program from PBL.md
     // MOV A,#10 / MOV 30H,A / ADD A,R1 / INC R1 / HALT   (R1 preset to 3)
     private static void testDemoProgram() {
         CPU cpu = new CPU();
@@ -163,9 +171,9 @@ public class CPUTest {
 
         cpu.run(); // repeatedly fetch/decode/execute until HALT
 
-        check("TC09a", "Demo: final A", "13", cpu.getA());
-        check("TC09b", "Demo: final R1", "4", cpu.getR(1));
-        check("TC09c", "Demo: DataMem[48]", "10", cpu.readDataMemory(48));
-        check("TC09d", "Demo: running", "false", cpu.isRunning());
+        check("TC10a", "Demo: final A", "13", cpu.getA());
+        check("TC10b", "Demo: final R1", "4", cpu.getR(1));
+        check("TC10c", "Demo: DataMem[48]", "10", cpu.readDataMemory(48));
+        check("TC10d", "Demo: running", "false", cpu.isRunning());
     }
 }
