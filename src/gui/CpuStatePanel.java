@@ -7,114 +7,122 @@ import java.awt.*;
 
 public class CpuStatePanel extends JPanel {
 
-    private JLabel a;
-    private JLabel b;
-    private JLabel psw;
-    private JLabel pc;
-    private JLabel sp;
+    private JLabel aLabel;
+    private JLabel bLabel;
+    private JLabel pswLabel;
+    private JLabel pcLabel;
+    private JLabel spLabel;
 
-    private JLabel[] registers;
+    private JLabel[] rLabels;
 
-    private JLabel cy;
-    private JLabel ov;
-    private JLabel status;
+    private JLabel cyLabel;
+    private JLabel ovLabel;
+
+    private JLabel statusLabel;
 
     public CpuStatePanel() {
 
         setBorder(
                 BorderFactory.createTitledBorder(
-                        "MS51FB9AE CPU STATE"
+                        "CPU REGISTERS"
                 )
         );
 
         setLayout(
-                new GridLayout(0, 2, 5, 5)
+                new GridLayout(0, 2, 10, 12)
         );
 
-        a = new JLabel("A : 00H");
-        b = new JLabel("B : 00H");
-        psw = new JLabel("PSW : 00H");
-        pc = new JLabel("PC : 0000H");
-        sp = new JLabel("SP : 07H");
+        aLabel = new JLabel("A    00H");
+        bLabel = new JLabel("B    00H");
 
-        cy = new JLabel("CY : 0");
-        ov = new JLabel("OV : 0");
-        status = new JLabel("Status : Ready");
+        pswLabel = new JLabel("PSW  00H");
+        pcLabel = new JLabel("PC   0000H");
 
-        registers = new JLabel[8];
+        spLabel = new JLabel("SP   07H");
+        cyLabel = new JLabel("CY   0");
 
-        for (int i = 0; i < 8; i++) {
+        ovLabel = new JLabel("OV   0");
+        statusLabel = new JLabel("Status: Ready");
 
-            registers[i] =
-                    new JLabel("R" + i + " : 00H");
-        }
-
-        add(a);
-        add(b);
-
-        add(psw);
-        add(pc);
-
-        add(sp);
-        add(cy);
-
-        add(ov);
-        add(status);
+        rLabels = new JLabel[8];
 
         for (int i = 0; i < 8; i++) {
-            add(registers[i]);
+            rLabels[i] = new JLabel(
+                    "R" + i + "   00H"
+            );
         }
+
+        add(aLabel);
+        add(bLabel);
+
+        add(pswLabel);
+        add(pcLabel);
+
+        add(spLabel);
+        add(cyLabel);
+
+        add(ovLabel);
+        add(statusLabel);
+
+        add(rLabels[0]);
+        add(rLabels[4]);
+
+        add(rLabels[1]);
+        add(rLabels[5]);
+
+        add(rLabels[2]);
+        add(rLabels[6]);
+
+        add(rLabels[3]);
+        add(rLabels[7]);
     }
 
-    public void updateState(
-            CPU cpu,
-            String state
-    ) {
+    public void updateState(CPU cpu, String status) {
 
-        a.setText(
+        aLabel.setText(
                 String.format(
-                        "A : %02XH",
+                        "A    %02XH",
                         cpu.getA()
                 )
         );
 
-        pc.setText(
+        pcLabel.setText(
                 String.format(
-                        "PC : %04XH",
+                        "PC   %04XH",
                         cpu.getPC()
                 )
         );
 
-        sp.setText(
+        spLabel.setText(
                 String.format(
-                        "SP : %02XH",
+                        "SP   %02XH",
                         cpu.getSP()
                 )
         );
 
-        cy.setText(
-                "CY : "
-                        + (cpu.isCY() ? "1" : "0")
+        cyLabel.setText(
+                "CY   " +
+                        (cpu.isCY() ? "1" : "0")
         );
 
-        ov.setText(
-                "OV : "
-                        + (cpu.isOV() ? "1" : "0")
+        ovLabel.setText(
+                "OV   " +
+                        (cpu.isOV() ? "1" : "0")
         );
 
         for (int i = 0; i < 8; i++) {
 
-            registers[i].setText(
+            rLabels[i].setText(
                     String.format(
-                            "R%d : %02XH",
+                            "R%d   %02XH",
                             i,
                             cpu.getR(i)
                     )
             );
         }
 
-        status.setText(
-                "Status : " + state
+        statusLabel.setText(
+                "Status: " + status
         );
     }
 }
