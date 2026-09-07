@@ -2,49 +2,43 @@ package gui;
 
 import cpu_core.CPU;
 import cpu_core.Instruction;
-import java.awt.BorderLayout;
-import java.awt.GridLayout;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
 
 public class MainWindow extends JFrame {
 
     private CPU cpu;
     private ArrayList<Instruction> program;
 
-    private ControlPanel controlPanel;
     private CpuStatePanel cpuStatePanel;
     private ProgramPanel programPanel;
     private ExecutionTracePanel tracePanel;
-    private JLabel statusBar;
+    private ControlPanel controlPanel;
 
-    private Timer runTimer;
-    private boolean programLoaded;
+    private JLabel statusLabel;
+    private Timer timer;
 
     public MainWindow() {
 
         cpu = new CPU();
-        program = createDemoProgram();
 
-        setTitle("MS51FB9AE Microcontroller Simulator");
-        setSize(950, 700);
+        program = createProgram();
+
+        setTitle("NUVOTON MS51FB9AE MICROCONTROLLER SIMULATOR");
+        setSize(1100, 750);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        controlPanel = new ControlPanel();
         cpuStatePanel = new CpuStatePanel();
         programPanel = new ProgramPanel();
         tracePanel = new ExecutionTracePanel();
+        controlPanel = new ControlPanel();
 
-        statusBar = new JLabel(
-            " Status: Click Load to begin."
-        );
+        statusLabel = new JLabel(" Status: Ready");
 
         createLayout();
         connectButtons();
@@ -54,464 +48,278 @@ public class MainWindow extends JFrame {
 
     private void createLayout() {
 
-        setLayout(new BorderLayout(8, 8));
-
-        JPanel middlePanel =
-            new JPanel(new GridLayout(1, 2, 8, 8));
-
-        middlePanel.add(programPanel);
-        middlePanel.add(cpuStatePanel);
-
-        JPanel bottomPanel =
-            new JPanel(new BorderLayout());
-
-        bottomPanel.add(
-            controlPanel,
-            BorderLayout.CENTER
+        JLabel title = new JLabel(
+                "NUVOTON MS51FB9AE MICROCONTROLLER SIMULATOR",
+                JLabel.CENTER
         );
 
-        bottomPanel.add(
-            statusBar,
-            BorderLayout.SOUTH
+        title.setFont(
+                new Font("Arial", Font.BOLD, 20)
         );
 
-        add(
-            tracePanel,
-            BorderLayout.NORTH
+        add(title, BorderLayout.NORTH);
+
+        JPanel center = new JPanel(
+                new GridLayout(1, 2, 10, 10)
         );
 
-        add(
-            middlePanel,
-            BorderLayout.CENTER
+        center.add(programPanel);
+        center.add(cpuStatePanel);
+
+        add(center, BorderLayout.CENTER);
+
+        JPanel bottom = new JPanel(
+                new BorderLayout()
         );
 
-        add(
-            bottomPanel,
-            BorderLayout.SOUTH
+        bottom.add(
+                controlPanel,
+                BorderLayout.NORTH
         );
+
+        bottom.add(
+                tracePanel,
+                BorderLayout.CENTER
+        );
+
+        bottom.add(
+                statusLabel,
+                BorderLayout.SOUTH
+        );
+
+        add(bottom, BorderLayout.SOUTH);
     }
 
     private void connectButtons() {
 
         controlPanel.getLoadButton()
-            .addActionListener(e -> loadProgram());
-
-        controlPanel.getResetButton()
-            .addActionListener(e -> resetCpu());
-
-        controlPanel.getStepButton()
-            .addActionListener(e -> stepProgram());
+                .addActionListener(e -> loadProgram());
 
         controlPanel.getRunButton()
-            .addActionListener(e -> runProgram());
+                .addActionListener(e -> runProgram());
+
+        controlPanel.getStepButton()
+                .addActionListener(e -> stepProgram());
+
+        controlPanel.getResetButton()
+                .addActionListener(e -> resetProgram());
     }
 
-    private ArrayList<Instruction> createDemoProgram() {
+    private ArrayList<Instruction> createProgram() {
 
-        ArrayList<Instruction> demoProgram =
-            new ArrayList<>();
+        ArrayList<Instruction> list =
+                new ArrayList<>();
 
-        // 1. Data Transfer
-        demoProgram.add(
-            new Instruction(
+        list.add(new Instruction(
                 "MOV_A_DATA",
                 Arrays.asList("10")
-            )
-        );
+        ));
 
-        // 2. Data Transfer
-        demoProgram.add(
-            new Instruction(
-                "MOV_DIRECT_A",
-                Arrays.asList("48")
-            )
-        );
+        list.add(new Instruction(
+                "MOV_RN_DATA",
+                Arrays.asList("R1", "3")
+        ));
 
-        // 3. Arithmetic
-        demoProgram.add(
-            new Instruction(
+        list.add(new Instruction(
                 "ADD",
                 Arrays.asList("R1")
-            )
-        );
+        ));
 
-        // 4. Arithmetic
-        demoProgram.add(
-            new Instruction(
+        list.add(new Instruction(
                 "SUBB",
                 Arrays.asList("R1")
-            )
-        );
+        ));
 
-        // 5. Logical Operation
-        demoProgram.add(
-            new Instruction(
+        list.add(new Instruction(
                 "ANL",
                 Arrays.asList("R1")
-            )
-        );
+        ));
 
-        // 6. Increment
-        demoProgram.add(
-            new Instruction(
+        list.add(new Instruction(
                 "INC",
                 Arrays.asList("R1")
-            )
-        );
+        ));
 
-        // 7. Control Flow
-        demoProgram.add(
-            new Instruction(
-                "SJMP",
-                Arrays.asList("0")
-            )
-        );
-
-        // 8. Program Termination
-        demoProgram.add(
-            new Instruction(
+        list.add(new Instruction(
                 "HALT",
                 Collections.emptyList()
-            )
-        );
+        ));
 
-        return demoProgram;
+        return list;
     }
 
     private void loadProgram() {
 
         cpu.loadProgram(program);
 
-        // Initial R1 value
-        cpu.setR(1, 3);
-
-        programLoaded = true;
-
-        tracePanel.clearTrace();
-
         programPanel.showProgram(program);
 
-        programPanel.showNextInstruction(
-            cpu.getPC(),
-            program
-        );
-
-        programPanel.showCategory("None");
-
         cpuStatePanel.updateState(
-            cpu,
-            "Ready"
+                cpu,
+                "Ready"
         );
-
-        statusBar.setText(
-            " Program loaded successfully."
-        );
-    }
-
-    private void resetCpu() {
-
-        if (!programLoaded) {
-
-            statusBar.setText(
-                " Load the program first."
-            );
-
-            return;
-        }
-
-        stopRunningProgram();
-
-        cpu.reset();
-
-        cpu.setR(1, 3);
 
         tracePanel.clearTrace();
 
-        programPanel.showCurrentInstruction(
-            -1,
-            null
-        );
-
-        programPanel.showCategory("None");
-
-        cpuStatePanel.updateState(
-            cpu,
-            "Ready"
-        );
-
-        statusBar.setText(
-            " CPU reset complete."
+        statusLabel.setText(
+                " Status: MS51FB9AE program loaded."
         );
     }
 
     private void stepProgram() {
 
-        if (!programLoaded) {
-
-            statusBar.setText(
-                " Load the program first."
-            );
-
-            return;
-        }
-
         if (!cpu.isRunning()) {
 
-            stopRunningProgram();
-
-            cpuStatePanel.updateState(
-                cpu,
-                "Halted"
-            );
-
-            programPanel.showCategory("None");
-
-            statusBar.setText(
-                " Program has halted. "
-                + "Click Reset to run again."
+            statusLabel.setText(
+                    " Status: Program halted. Press Reset."
             );
 
             return;
         }
 
-        int beforePC = cpu.getPC();
-
-        int beforeA = cpu.getA();
-
-        int[] beforeRegisters =
-            new int[8];
-
-        for (int i = 0; i < 8; i++) {
-
-            beforeRegisters[i] =
-                cpu.getR(i);
-        }
+        int oldPC = cpu.getPC();
 
         Instruction instruction =
-            cpu.step();
+                cpu.step();
 
         if (instruction == null) {
-
-            statusBar.setText(
-                " No instruction available."
-            );
-
             return;
         }
 
-        // Get instruction category
-        String category =
-            cpu.getInstructionCategory(
-                instruction.mnemonic
-            );
-
-        // Display category in ProgramPanel
-        programPanel.showCategory(
-            category
+        programPanel.showCurrentInstruction(
+                oldPC,
+                instruction
         );
 
-        // Show execution trace
-        showTrace(
-            beforePC,
-            beforeA,
-            beforeRegisters,
-            instruction
+        tracePanel.addTrace(
+                "FETCH   : PC = "
+                        + String.format("%04XH", oldPC)
         );
 
-        String state =
-            cpu.isRunning()
-                ? "Running"
-                : "Halted";
+        tracePanel.addTrace(
+                "DECODE  : "
+                        + instruction
+        );
+
+        tracePanel.addTrace(
+                "EXECUTE : "
+                        + instruction.mnemonic
+        );
+
+        tracePanel.addTrace(
+                "PC      : "
+                        + String.format(
+                                "%04XH",
+                                cpu.getPC()
+                        )
+        );
+
+        tracePanel.addTrace(
+                "A       : "
+                        + String.format(
+                                "%02XH",
+                                cpu.getA()
+                        )
+        );
+
+        tracePanel.addTrace(
+                "CY      : "
+                        + (cpu.isCY() ? "1" : "0")
+        );
+
+        tracePanel.addTrace(
+                "OV      : "
+                        + (cpu.isOV() ? "1" : "0")
+        );
+
+        tracePanel.addTrace(
+                "--------------------------------"
+        );
 
         cpuStatePanel.updateState(
-            cpu,
-            state
+                cpu,
+                cpu.isRunning()
+                        ? "Running"
+                        : "Halted"
         );
 
-        programPanel.showNextInstruction(
-            cpu.getPC(),
-            program
-        );
+        if (cpu.isRunning()) {
 
-        if (!cpu.isRunning()) {
-
-            stopRunningProgram();
-
-            statusBar.setText(
-                " Program halted."
+            programPanel.showNextInstruction(
+                    cpu.getPC(),
+                    program
             );
 
         } else {
 
-            statusBar.setText(
-                " Executed instruction at PC = "
-                + String.format(
-                    "%04X",
-                    beforePC
-                )
-            );
-        }
-    }
-
-    private void showTrace(
-        int beforePC,
-        int beforeA,
-        int[] beforeRegisters,
-        Instruction instruction
-    ) {
-
-        String category =
-            cpu.getInstructionCategory(
-                instruction.mnemonic
+            statusLabel.setText(
+                    " Status: Program halted."
             );
 
-        tracePanel.addTrace(
-            "Instruction: "
-            + instruction.toString()
-        );
-
-        tracePanel.addTrace(
-            "Category: "
-            + category
-        );
-
-        tracePanel.addTrace("");
-
-        tracePanel.addTrace(
-            "FETCH   ✓  Read instruction at PC = "
-            + String.format(
-                "%04X",
-                beforePC
-            )
-        );
-
-        tracePanel.addTrace(
-            "DECODE  ✓  Instruction recognised"
-        );
-
-        tracePanel.addTrace(
-            "EXECUTE ✓"
-        );
-
-        tracePanel.addTrace("");
-
-        if (beforeA != cpu.getA()) {
-
-            tracePanel.addTrace(
-                "A: "
-                + String.format(
-                    "%02X",
-                    beforeA
-                )
-                + " -> "
-                + String.format(
-                    "%02X",
-                    cpu.getA()
-                )
-            );
+            stopTimer();
         }
-
-        for (int i = 0; i < 8; i++) {
-
-            if (
-                beforeRegisters[i]
-                != cpu.getR(i)
-            ) {
-
-                tracePanel.addTrace(
-                    "R" + i + ": "
-                    + String.format(
-                        "%02X",
-                        beforeRegisters[i]
-                    )
-                    + " -> "
-                    + String.format(
-                        "%02X",
-                        cpu.getR(i)
-                    )
-                );
-            }
-        }
-
-        tracePanel.addTrace(
-            "PC: "
-            + String.format(
-                "%04X",
-                beforePC
-            )
-            + " -> "
-            + String.format(
-                "%04X",
-                cpu.getPC()
-            )
-        );
-
-        tracePanel.addTrace(
-            "CY = "
-            + cpu.isCY()
-            + " | OV = "
-            + cpu.isOV()
-        );
-
-        tracePanel.addTrace(
-            "----------------------------------------"
-        );
     }
 
     private void runProgram() {
 
-        if (!programLoaded) {
-
-            statusBar.setText(
-                " Load the program first."
-            );
-
-            return;
-        }
-
         if (!cpu.isRunning()) {
 
-            statusBar.setText(
-                " Program has halted. "
-                + "Click Reset to run again."
+            statusLabel.setText(
+                    " Status: Press Load or Reset first."
             );
 
             return;
         }
 
-        if (runTimer == null) {
+        if (timer == null) {
 
-            runTimer =
-                new Timer(
+            timer = new Timer(
                     700,
                     e -> stepProgram()
-                );
+            );
         }
 
-        runTimer.start();
+        timer.start();
 
-        statusBar.setText(
-            " Program is running..."
+        statusLabel.setText(
+                " Status: Running MS51FB9AE..."
         );
     }
 
-    private void stopRunningProgram() {
+    private void resetProgram() {
 
-        if (
-            runTimer != null
-            && runTimer.isRunning()
-        ) {
+        stopTimer();
 
-            runTimer.stop();
+        cpu.reset();
+
+        tracePanel.clearTrace();
+
+        programPanel.showNextInstruction(
+                cpu.getPC(),
+                program
+        );
+
+        cpuStatePanel.updateState(
+                cpu,
+                "Ready"
+        );
+
+        statusLabel.setText(
+                " Status: MS51FB9AE CPU Reset."
+        );
+    }
+
+    private void stopTimer() {
+
+        if (timer != null) {
+            timer.stop();
         }
     }
 
-    public static void main(
-        String[] args
-    ) {
+    public static void main(String[] args) {
 
         SwingUtilities.invokeLater(
-            () -> new MainWindow()
+                () -> new MainWindow()
         );
     }
 }
