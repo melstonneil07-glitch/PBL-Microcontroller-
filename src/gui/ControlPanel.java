@@ -1,43 +1,45 @@
 package gui;
 
-import java.awt.FlowLayout;
-import javax.swing.JButton;
-import javax.swing.JPanel;
+import javax.swing.*;
+import java.awt.*;
 
 public class ControlPanel extends JPanel {
 
     private JButton loadButton;
-    private JButton resetButton;
-    private JButton stepButton;
     private JButton runButton;
+    private JButton stepButton;
+    private JButton resetButton;
 
     public ControlPanel() {
-        setLayout(new FlowLayout());
 
-        loadButton = new JButton("Load");
-        resetButton = new JButton("Reset");
-        stepButton = new JButton("Step");
-        runButton = new JButton("Run");
+        setLayout(
+                new FlowLayout()
+        );
+
+        loadButton = new JButton("LOAD");
+        runButton = new JButton("RUN");
+        stepButton = new JButton("STEP");
+        resetButton = new JButton("RESET");
 
         add(loadButton);
-        add(resetButton);
-        add(stepButton);
         add(runButton);
+        add(stepButton);
+        add(resetButton);
     }
 
     public JButton getLoadButton() {
         return loadButton;
     }
 
-    public JButton getResetButton() {
-        return resetButton;
+    public JButton getRunButton() {
+        return runButton;
     }
 
     public JButton getStepButton() {
         return stepButton;
     }
 
-    public JButton getRunButton() {
-        return runButton;
+    public JButton getResetButton() {
+        return resetButton;
     }
 }
