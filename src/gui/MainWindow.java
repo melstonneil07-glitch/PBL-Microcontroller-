@@ -12,14 +12,16 @@ import java.util.Collections;
 public class MainWindow extends JFrame {
 
     private CPU cpu;
+
     private ArrayList<Instruction> program;
 
+    private ControlPanel controlPanel;
     private CpuStatePanel cpuStatePanel;
     private ProgramPanel programPanel;
     private ExecutionTracePanel tracePanel;
-    private ControlPanel controlPanel;
 
-    private JLabel statusLabel;
+    private JLabel statusBar;
+
     private Timer timer;
 
     public MainWindow() {
@@ -28,19 +30,37 @@ public class MainWindow extends JFrame {
 
         program = createProgram();
 
-        setTitle("NUVOTON MS51FB9AE MICROCONTROLLER SIMULATOR");
+        setTitle(
+                "Nuvoton MS51FB9AE Microcontroller Simulator"
+        );
+
         setSize(1100, 750);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        setDefaultCloseOperation(
+                JFrame.EXIT_ON_CLOSE
+        );
+
         setLocationRelativeTo(null);
 
-        cpuStatePanel = new CpuStatePanel();
-        programPanel = new ProgramPanel();
-        tracePanel = new ExecutionTracePanel();
-        controlPanel = new ControlPanel();
+        controlPanel =
+                new ControlPanel();
 
-        statusLabel = new JLabel(" Status: Ready");
+        cpuStatePanel =
+                new CpuStatePanel();
+
+        programPanel =
+                new ProgramPanel();
+
+        tracePanel =
+                new ExecutionTracePanel();
+
+        statusBar =
+                new JLabel(
+                        " Status: Ready"
+                );
 
         createLayout();
+
         connectButtons();
 
         setVisible(true);
@@ -48,29 +68,51 @@ public class MainWindow extends JFrame {
 
     private void createLayout() {
 
-        JLabel title = new JLabel(
-                "NUVOTON MS51FB9AE MICROCONTROLLER SIMULATOR",
-                JLabel.CENTER
+        setLayout(
+                new BorderLayout(8, 8)
         );
+
+        JLabel title =
+                new JLabel(
+                        "NUVOTON MS51FB9AE MICROCONTROLLER SIMULATOR",
+                        JLabel.CENTER
+                );
 
         title.setFont(
-                new Font("Arial", Font.BOLD, 20)
+                new Font(
+                        "Arial",
+                        Font.BOLD,
+                        20
+                )
         );
 
-        add(title, BorderLayout.NORTH);
-
-        JPanel center = new JPanel(
-                new GridLayout(1, 2, 10, 10)
+        add(
+                title,
+                BorderLayout.NORTH
         );
+
+        JPanel center =
+                new JPanel(
+                        new GridLayout(
+                                1,
+                                2,
+                                10,
+                                10
+                        )
+                );
 
         center.add(programPanel);
         center.add(cpuStatePanel);
 
-        add(center, BorderLayout.CENTER);
-
-        JPanel bottom = new JPanel(
-                new BorderLayout()
+        add(
+                center,
+                BorderLayout.CENTER
         );
+
+        JPanel bottom =
+                new JPanel(
+                        new BorderLayout()
+                );
 
         bottom.add(
                 controlPanel,
@@ -83,26 +125,14 @@ public class MainWindow extends JFrame {
         );
 
         bottom.add(
-                statusLabel,
+                statusBar,
                 BorderLayout.SOUTH
         );
 
-        add(bottom, BorderLayout.SOUTH);
-    }
-
-    private void connectButtons() {
-
-        controlPanel.getLoadButton()
-                .addActionListener(e -> loadProgram());
-
-        controlPanel.getRunButton()
-                .addActionListener(e -> runProgram());
-
-        controlPanel.getStepButton()
-                .addActionListener(e -> stepProgram());
-
-        controlPanel.getResetButton()
-                .addActionListener(e -> resetProgram());
+        add(
+                bottom,
+                BorderLayout.SOUTH
+        );
     }
 
     private ArrayList<Instruction> createProgram() {
@@ -110,42 +140,90 @@ public class MainWindow extends JFrame {
         ArrayList<Instruction> list =
                 new ArrayList<>();
 
-        list.add(new Instruction(
-                "MOV_A_DATA",
-                Arrays.asList("10")
-        ));
+        list.add(
+                new Instruction(
+                        "MOV_A_DATA",
+                        Arrays.asList("10")
+                )
+        );
 
-        list.add(new Instruction(
-                "MOV_RN_DATA",
-                Arrays.asList("R1", "3")
-        ));
+        list.add(
+                new Instruction(
+                        "MOV_RN_DATA",
+                        Arrays.asList("R1", "3")
+                )
+        );
 
-        list.add(new Instruction(
-                "ADD",
-                Arrays.asList("R1")
-        ));
+        list.add(
+                new Instruction(
+                        "ADD",
+                        Arrays.asList("R1")
+                )
+        );
 
-        list.add(new Instruction(
-                "SUBB",
-                Arrays.asList("R1")
-        ));
+        list.add(
+                new Instruction(
+                        "SUBB",
+                        Arrays.asList("R1")
+                )
+        );
 
-        list.add(new Instruction(
-                "ANL",
-                Arrays.asList("R1")
-        ));
+        list.add(
+                new Instruction(
+                        "ANL",
+                        Arrays.asList("R1")
+                )
+        );
 
-        list.add(new Instruction(
-                "INC",
-                Arrays.asList("R1")
-        ));
+        list.add(
+                new Instruction(
+                        "INC",
+                        Arrays.asList("R1")
+                )
+        );
 
-        list.add(new Instruction(
-                "HALT",
-                Collections.emptyList()
-        ));
+        list.add(
+                new Instruction(
+                        "SJMP",
+                        Arrays.asList("+1")
+                )
+        );
+
+        list.add(
+                new Instruction(
+                        "HALT",
+                        Collections.emptyList()
+                )
+        );
 
         return list;
+    }
+
+    private void connectButtons() {
+
+        controlPanel
+                .getLoadButton()
+                .addActionListener(
+                        e -> loadProgram()
+                );
+
+        controlPanel
+                .getStepButton()
+                .addActionListener(
+                        e -> stepProgram()
+                );
+
+        controlPanel
+                .getRunButton()
+                .addActionListener(
+                        e -> runProgram()
+                );
+
+        controlPanel
+                .getResetButton()
+                .addActionListener(
+                        e -> resetProgram()
+                );
     }
 
     private void loadProgram() {
@@ -159,10 +237,15 @@ public class MainWindow extends JFrame {
                 "Ready"
         );
 
+        programPanel.showNextInstruction(
+                cpu.getPC(),
+                program
+        );
+
         tracePanel.clearTrace();
 
-        statusLabel.setText(
-                " Status: MS51FB9AE program loaded."
+        statusBar.setText(
+                " Status: Program loaded successfully."
         );
     }
 
@@ -170,14 +253,17 @@ public class MainWindow extends JFrame {
 
         if (!cpu.isRunning()) {
 
-            statusLabel.setText(
-                    " Status: Program halted. Press Reset."
+            statusBar.setText(
+                    " Status: Program halted."
             );
+
+            stopTimer();
 
             return;
         }
 
-        int oldPC = cpu.getPC();
+        int oldPC =
+                cpu.getPC();
 
         Instruction instruction =
                 cpu.step();
@@ -193,7 +279,10 @@ public class MainWindow extends JFrame {
 
         tracePanel.addTrace(
                 "FETCH   : PC = "
-                        + String.format("%04XH", oldPC)
+                        + String.format(
+                        "%04XH",
+                        oldPC
+                )
         );
 
         tracePanel.addTrace(
@@ -209,17 +298,25 @@ public class MainWindow extends JFrame {
         tracePanel.addTrace(
                 "PC      : "
                         + String.format(
-                                "%04XH",
-                                cpu.getPC()
-                        )
+                        "%04XH",
+                        cpu.getPC()
+                )
         );
 
         tracePanel.addTrace(
                 "A       : "
                         + String.format(
-                                "%02XH",
-                                cpu.getA()
-                        )
+                        "%02XH",
+                        cpu.getA()
+                )
+        );
+
+        tracePanel.addTrace(
+                "R1      : "
+                        + String.format(
+                        "%02XH",
+                        cpu.getR(1)
+                )
         );
 
         tracePanel.addTrace(
@@ -252,11 +349,11 @@ public class MainWindow extends JFrame {
 
         } else {
 
-            statusLabel.setText(
+            stopTimer();
+
+            statusBar.setText(
                     " Status: Program halted."
             );
-
-            stopTimer();
         }
     }
 
@@ -264,8 +361,8 @@ public class MainWindow extends JFrame {
 
         if (!cpu.isRunning()) {
 
-            statusLabel.setText(
-                    " Status: Press Load or Reset first."
+            statusBar.setText(
+                    " Status: Press LOAD or RESET."
             );
 
             return;
@@ -273,16 +370,17 @@ public class MainWindow extends JFrame {
 
         if (timer == null) {
 
-            timer = new Timer(
-                    700,
-                    e -> stepProgram()
-            );
+            timer =
+                    new Timer(
+                            700,
+                            e -> stepProgram()
+                    );
         }
 
         timer.start();
 
-        statusLabel.setText(
-                " Status: Running MS51FB9AE..."
+        statusBar.setText(
+                " Status: Running..."
         );
     }
 
@@ -294,24 +392,27 @@ public class MainWindow extends JFrame {
 
         tracePanel.clearTrace();
 
-        programPanel.showNextInstruction(
-                cpu.getPC(),
-                program
-        );
-
         cpuStatePanel.updateState(
                 cpu,
                 "Ready"
         );
 
-        statusLabel.setText(
-                " Status: MS51FB9AE CPU Reset."
+        programPanel.showNextInstruction(
+                cpu.getPC(),
+                program
+        );
+
+        statusBar.setText(
+                " Status: CPU Reset."
         );
     }
 
     private void stopTimer() {
 
-        if (timer != null) {
+        if (
+                timer != null &&
+                timer.isRunning()
+        ) {
             timer.stop();
         }
     }
