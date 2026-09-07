@@ -188,6 +188,10 @@ public class CPU {
     public boolean isCY() { return cy; }
     public boolean isOV() { return ov; }
     public boolean isRunning() { return running; }
+    public String getInstructionCategory(String mnemonic) {
+    return instructionTable.getOrDefault(mnemonic, "Unknown");
+}
+    
 
     // Returned as an unsigned 0-255 value, since DataMemory stores signed bytes.
     public int readDataMemory(int address) { return dataMemory.read(address) & 0xFF; }
