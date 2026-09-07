@@ -11,14 +11,14 @@ public class ProgramPanel extends JPanel {
     private DefaultListModel<String> model;
     private JList<String> programList;
 
-    private JLabel currentInstruction;
-    private JLabel category;
+    private JLabel currentLabel;
+    private JLabel categoryLabel;
 
     public ProgramPanel() {
 
         setBorder(
                 BorderFactory.createTitledBorder(
-                        "PROGRAM MEMORY - APROM"
+                        "PROGRAM MEMORY"
                 )
         );
 
@@ -26,29 +26,28 @@ public class ProgramPanel extends JPanel {
                 new BorderLayout()
         );
 
-        model =
-                new DefaultListModel<>();
+        model = new DefaultListModel<>();
 
         programList =
                 new JList<>(model);
 
-        currentInstruction =
+        currentLabel =
                 new JLabel(
-                        "Current Instruction : None"
+                        "Current Instruction: None"
                 );
 
-        category =
+        categoryLabel =
                 new JLabel(
-                        "Category : None"
+                        "Category: None"
                 );
 
-        JPanel info =
+        JPanel information =
                 new JPanel(
                         new GridLayout(2, 1)
                 );
 
-        info.add(currentInstruction);
-        info.add(category);
+        information.add(currentLabel);
+        information.add(categoryLabel);
 
         add(
                 new JScrollPane(programList),
@@ -56,7 +55,7 @@ public class ProgramPanel extends JPanel {
         );
 
         add(
-                info,
+                information,
                 BorderLayout.SOUTH
         );
     }
@@ -69,11 +68,19 @@ public class ProgramPanel extends JPanel {
 
         for (int i = 0; i < program.size(); i++) {
 
+            Instruction instruction =
+                    program.get(i);
+
+            String display =
+                    getDisplayInstruction(
+                            instruction
+                    );
+
             model.addElement(
                     String.format(
-                            "%04XH    %s",
+                            "%04X  %s",
                             i,
-                            program.get(i)
+                            display
                     )
             );
         }
@@ -84,13 +91,17 @@ public class ProgramPanel extends JPanel {
             Instruction instruction
     ) {
 
-        currentInstruction.setText(
-                "Current Instruction : "
-                        + instruction
+        if (instruction == null) {
+            return;
+        }
+
+        currentLabel.setText(
+                "Current Instruction: "
+                        + getDisplayInstruction(instruction)
         );
 
-        category.setText(
-                "Category : "
+        categoryLabel.setText(
+                "Category: "
                         + getCategory(
                         instruction.mnemonic
                 )
@@ -118,16 +129,50 @@ public class ProgramPanel extends JPanel {
                     pc,
                     program.get(pc)
             );
+        }
+    }
 
-        } else {
+    private String getDisplayInstruction(
+            Instruction instruction
+    ) {
 
-            currentInstruction.setText(
-                    "Current Instruction : None"
-            );
+        switch (instruction.mnemonic) {
 
-            category.setText(
-                    "Category : None"
-            );
+            case "MOV_A_DATA":
+                return "MOV A,#"
+                        + instruction.operands.get(0);
+
+            case "MOV_RN_DATA":
+                return "MOV "
+                        + instruction.operands.get(0)
+                        + ",#"
+                        + instruction.operands.get(1);
+
+            case "ADD":
+                return "ADD A,"
+                        + instruction.operands.get(0);
+
+            case "SUBB":
+                return "SUBB A,"
+                        + instruction.operands.get(0);
+
+            case "ANL":
+                return "ANL A,"
+                        + instruction.operands.get(0);
+
+            case "INC":
+                return "INC "
+                        + instruction.operands.get(0);
+
+            case "SJMP":
+                return "SJMP "
+                        + instruction.operands.get(0);
+
+            case "HALT":
+                return "HALT";
+
+            default:
+                return instruction.toString();
         }
     }
 
@@ -155,7 +200,7 @@ public class ProgramPanel extends JPanel {
                 return "Control Flow";
 
             case "HALT":
-                return "Simulator Termination";
+                return "Program Termination";
 
             default:
                 return "Unknown";
