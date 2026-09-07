@@ -30,9 +30,7 @@ public class ExecutionTracePanel extends JPanel {
         );
     }
 
-    public void addTrace(
-            String text
-    ) {
+    public void addTrace(String text) {
 
         traceArea.append(
                 text + "\n"
