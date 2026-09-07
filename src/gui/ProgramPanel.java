@@ -1,139 +1,164 @@
 package gui;
 
 import cpu_core.Instruction;
-import java.awt.BorderLayout;
-import java.awt.GridLayout;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
-import javax.swing.BorderFactory;
-import javax.swing.DefaultListModel;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 
 public class ProgramPanel extends JPanel {
 
-    private JLabel categoryLabel;
-    private DefaultListModel<String> programModel;
+    private DefaultListModel<String> model;
     private JList<String> programList;
-    private JLabel currentInstructionLabel;
+
+    private JLabel currentInstruction;
+    private JLabel category;
 
     public ProgramPanel() {
 
-        setLayout(new BorderLayout());
         setBorder(
-            BorderFactory.createTitledBorder("Loaded Program")
+                BorderFactory.createTitledBorder(
+                        "PROGRAM MEMORY - APROM"
+                )
         );
 
-        programModel = new DefaultListModel<>();
-        programList = new JList<>(programModel);
-
-        currentInstructionLabel = new JLabel(
-            "Current Instruction: None"
+        setLayout(
+                new BorderLayout()
         );
 
-        categoryLabel = new JLabel(
-            "Category: None"
+        model =
+                new DefaultListModel<>();
+
+        programList =
+                new JList<>(model);
+
+        currentInstruction =
+                new JLabel(
+                        "Current Instruction : None"
+                );
+
+        category =
+                new JLabel(
+                        "Category : None"
+                );
+
+        JPanel info =
+                new JPanel(
+                        new GridLayout(2, 1)
+                );
+
+        info.add(currentInstruction);
+        info.add(category);
+
+        add(
+                new JScrollPane(programList),
+                BorderLayout.CENTER
         );
 
         add(
-            new JScrollPane(programList),
-            BorderLayout.CENTER
-        );
-
-        JPanel infoPanel = new JPanel(
-            new GridLayout(2, 1)
-        );
-
-        infoPanel.add(currentInstructionLabel);
-        infoPanel.add(categoryLabel);
-
-        add(
-            infoPanel,
-            BorderLayout.SOUTH
+                info,
+                BorderLayout.SOUTH
         );
     }
 
     public void showProgram(
-        ArrayList<Instruction> program
+            ArrayList<Instruction> program
     ) {
-        programModel.clear();
+
+        model.clear();
 
         for (int i = 0; i < program.size(); i++) {
 
-            String line = String.format(
-                "%04X  %s",
-                i,
-                program.get(i).toString()
+            model.addElement(
+                    String.format(
+                            "%04XH    %s",
+                            i,
+                            program.get(i)
+                    )
             );
-
-            programModel.addElement(line);
         }
     }
 
     public void showCurrentInstruction(
-        int address,
-        Instruction instruction
+            int pc,
+            Instruction instruction
     ) {
 
-        if (instruction == null) {
-
-            currentInstructionLabel.setText(
-                "Current Instruction: None"
-            );
-
-            categoryLabel.setText(
-                "Category: None"
-            );
-
-            programList.clearSelection();
-            return;
-        }
-
-        currentInstructionLabel.setText(
-            "Current Instruction: "
-            + instruction.toString()
+        currentInstruction.setText(
+                "Current Instruction : "
+                        + instruction
         );
 
-        programList.setSelectedIndex(address);
-        programList.ensureIndexIsVisible(address);
+        category.setText(
+                "Category : "
+                        + getCategory(
+                        instruction.mnemonic
+                )
+        );
+
+        if (pc >= 0 && pc < model.size()) {
+
+            programList.setSelectedIndex(pc);
+
+            programList.ensureIndexIsVisible(pc);
+        }
     }
 
     public void showNextInstruction(
-        int address,
-        ArrayList<Instruction> program
+            int pc,
+            ArrayList<Instruction> program
     ) {
 
-        if (address >= 0 && address < program.size()) {
+        if (
+                pc >= 0 &&
+                pc < program.size()
+        ) {
 
-            currentInstructionLabel.setText(
-                "Next Instruction: "
-                + program.get(address).toString()
+            showCurrentInstruction(
+                    pc,
+                    program.get(pc)
             );
-
-            programList.setSelectedIndex(address);
-            programList.ensureIndexIsVisible(address);
 
         } else {
 
-            currentInstructionLabel.setText(
-                "Next Instruction: None (Program Halted)"
+            currentInstruction.setText(
+                    "Current Instruction : None"
             );
 
-            categoryLabel.setText(
-                "Category: None"
+            category.setText(
+                    "Category : None"
             );
-
-            programList.clearSelection();
         }
     }
 
-    public void showCategory(
-        String category
+    private String getCategory(
+            String mnemonic
     ) {
 
-        categoryLabel.setText(
-            "Category: " + category
-        );
+        switch (mnemonic) {
+
+            case "MOV_A_DATA":
+            case "MOV_RN_DATA":
+                return "Data Transfer";
+
+            case "ADD":
+            case "SUBB":
+                return "Arithmetic";
+
+            case "ANL":
+                return "Logical";
+
+            case "INC":
+                return "Increment / Decrement";
+
+            case "SJMP":
+                return "Control Flow";
+
+            case "HALT":
+                return "Simulator Termination";
+
+            default:
+                return "Unknown";
+        }
     }
 }
