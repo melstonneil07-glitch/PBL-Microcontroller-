@@ -6,24 +6,22 @@ import java.awt.*;
 public class ControlPanel extends JPanel {
 
     private JButton loadButton;
-    private JButton runButton;
     private JButton stepButton;
+    private JButton runButton;
     private JButton resetButton;
 
     public ControlPanel() {
 
-        setLayout(
-                new FlowLayout()
-        );
+        setLayout(new FlowLayout());
 
         loadButton = new JButton("LOAD");
-        runButton = new JButton("RUN");
         stepButton = new JButton("STEP");
+        runButton = new JButton("RUN");
         resetButton = new JButton("RESET");
 
         add(loadButton);
-        add(runButton);
         add(stepButton);
+        add(runButton);
         add(resetButton);
     }
 
@@ -31,12 +29,12 @@ public class ControlPanel extends JPanel {
         return loadButton;
     }
 
-    public JButton getRunButton() {
-        return runButton;
-    }
-
     public JButton getStepButton() {
         return stepButton;
+    }
+
+    public JButton getRunButton() {
+        return runButton;
     }
 
     public JButton getResetButton() {
