@@ -2,12 +2,11 @@ package gui;
 
 import cpu_core.CPU;
 import cpu_core.Instruction;
-
-import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import javax.swing.*;
 
 public class MainWindow extends JFrame {
 
@@ -185,7 +184,7 @@ public class MainWindow extends JFrame {
         list.add(
                 new Instruction(
                         "SJMP",
-                        Arrays.asList("+1")
+                        Arrays.asList("0")
                 )
         );
 
@@ -278,23 +277,19 @@ public class MainWindow extends JFrame {
         );
 
         tracePanel.addTrace(
-                "FETCH   : PC = "
-                        + String.format(
-                        "%04XH",
-                        oldPC
-                )
-        );
+        "FETCH   ✓ : PC = "
+                + String.format("%04XH", oldPC)
+);
 
-        tracePanel.addTrace(
-                "DECODE  : "
-                        + instruction
-        );
+tracePanel.addTrace(
+        "DECODE  ✓ : "
+                + instruction
+);
 
-        tracePanel.addTrace(
-                "EXECUTE : "
-                        + instruction.mnemonic
-        );
-
+tracePanel.addTrace(
+        "EXECUTE ✓ : "
+                + instruction.mnemonic
+);
         tracePanel.addTrace(
                 "PC      : "
                         + String.format(
@@ -372,7 +367,7 @@ public class MainWindow extends JFrame {
 
             timer =
                     new Timer(
-                            700,
+                            200,
                             e -> stepProgram()
                     );
         }
