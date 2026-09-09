@@ -61,5 +61,7 @@ Design and implement a software-based simulator for the assigned 8-bit microcont
 **Week 1 – Project Setup and Planning:**
 **Set up the public GitHub repository and folder structure, study the MS51FB9AE microcontroller architecture, finalize Java as the programming language, assign team responsibilities, design the initial simulator architecture, create relevant GitHub Issues, and complete the required project documentation and Week-1 review.**
 
+Week 2 – Initial Simulator Development:
+Develop the first working version of the microcontroller simulator in Java, implement the CPU core and registers, create the memory components, implement the basic FETCH–DECODE–EXECUTE cycle for the selected instructions, integrate the main simulator components, perform initial testing, and complete the Week-2 review and documentation.
 
 
