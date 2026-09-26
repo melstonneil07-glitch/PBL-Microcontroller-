@@ -1,10 +1,9 @@
 package gui;
 
 import cpu_core.Instruction;
-
-import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
+import javax.swing.*;
 
 public class ProgramPanel extends JPanel {
 
@@ -168,6 +167,22 @@ public class ProgramPanel extends JPanel {
                 return "SJMP "
                         + instruction.operands.get(0);
 
+            case "PUSH":
+                return "PUSH "
+                        + instruction.operands.get(0);
+
+            case "POP":
+                return "POP "
+                        + instruction.operands.get(0);
+
+            case "ENQUEUE":
+                return "ENQUEUE "
+                        + instruction.operands.get(0);
+
+            case "DEQUEUE":
+                return "DEQUEUE "
+                        + instruction.operands.get(0);
+
             case "HALT":
                 return "HALT";
 
@@ -201,6 +216,14 @@ public class ProgramPanel extends JPanel {
 
             case "HALT":
                 return "Program Termination";
+
+            case "PUSH":
+            case "POP":
+                return "Stack";
+
+            case "ENQUEUE":
+            case "DEQUEUE":
+                return "Queue";
 
             default:
                 return "Unknown";
