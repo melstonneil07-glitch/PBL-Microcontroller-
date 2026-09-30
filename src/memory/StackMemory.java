@@ -1,5 +1,7 @@
 package memory;
 
+import java.util.ArrayList;
+
 public class StackMemory {
     private byte[] stack = new byte[256];
 
@@ -34,5 +36,27 @@ public class StackMemory {
 
     public void reset() {
         sp = 0x07;
+    }
+
+    public boolean isEmpty() {
+        return sp <= 0x07;
+    }
+
+    public boolean isFull() {
+        return sp >= 0xFF;
+    }
+
+    // Number of bytes currently pushed onto the stack.
+    public int getStackSize() {
+        return sp - 0x07;
+    }
+
+    // Returns pushed values, bottom -> top, as unsigned ints, for UI display.
+    public ArrayList<Integer> snapshot() {
+        ArrayList<Integer> result = new ArrayList<>();
+        for (int i = 0x08; i <= sp; i++) {
+            result.add(stack[i] & 0xFF);
+        }
+        return result;
     }
 }

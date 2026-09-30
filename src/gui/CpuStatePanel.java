@@ -1,11 +1,10 @@
 package gui;
 
-import cpu_core.CPU;
-
-import javax.swing.*;
+import cpu_core.CpuSnapshot;
 import java.awt.*;
+import javax.swing.*;
 
-public class CpuStatePanel extends JPanel {
+public class CpuStatePanel extends JPanel implements CpuView {
 
     private JLabel aLabel;
     private JLabel bLabel;
@@ -77,47 +76,32 @@ public class CpuStatePanel extends JPanel {
         add(rLabels[7]);
     }
 
-    public void updateState(CPU cpu, String status) {
+    @Override
+    public void refresh(CpuSnapshot snapshot, String status) {
 
         aLabel.setText(
-                String.format(
-                        "A    %02XH",
-                        cpu.getA()
-                )
+                String.format("A    %02XH", snapshot.a)
         );
 
         pcLabel.setText(
-                String.format(
-                        "PC   %04XH",
-                        cpu.getPC()
-                )
+                String.format("PC   %04XH", snapshot.pc)
         );
 
         spLabel.setText(
-                String.format(
-                        "SP   %02XH",
-                        cpu.getSP()
-                )
+                String.format("SP   %02XH", snapshot.sp)
         );
 
         cyLabel.setText(
-                "CY   " +
-                        (cpu.isCY() ? "1" : "0")
+                "CY   " + (snapshot.cy ? "1" : "0")
         );
 
         ovLabel.setText(
-                "OV   " +
-                        (cpu.isOV() ? "1" : "0")
+                "OV   " + (snapshot.ov ? "1" : "0")
         );
 
         for (int i = 0; i < 8; i++) {
-
             rLabels[i].setText(
-                    String.format(
-                            "R%d   %02XH",
-                            i,
-                            cpu.getR(i)
-                    )
+                    String.format("R%d   %02XH", i, snapshot.registers[i])
             );
         }
 

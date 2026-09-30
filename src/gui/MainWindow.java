@@ -1,11 +1,13 @@
 package gui;
 
 import cpu_core.CPU;
+import cpu_core.CpuSnapshot;
 import cpu_core.Instruction;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import javax.swing.*;
 
 public class MainWindow extends JFrame {
@@ -18,6 +20,14 @@ public class MainWindow extends JFrame {
     private CpuStatePanel cpuStatePanel;
     private ProgramPanel programPanel;
     private ExecutionTracePanel tracePanel;
+    private StackPanel stackPanel;
+    private QueuePanel queuePanel;
+    private MemoryPanel memoryPanel;
+
+    // Every panel that displays CPU state, registered once here.
+    // updateAllPanels() never needs to change when a panel is added,
+    // removed, or reworked internally -- only this list does.
+    private final List<CpuView> views = new ArrayList<>();
 
     private JLabel statusBar;
 
@@ -33,7 +43,7 @@ public class MainWindow extends JFrame {
                 "Nuvoton MS51FB9AE Microcontroller Simulator"
         );
 
-        setSize(1100, 750);
+        setSize(1300, 800);
 
         setDefaultCloseOperation(
                 JFrame.EXIT_ON_CLOSE
@@ -52,6 +62,15 @@ public class MainWindow extends JFrame {
 
         tracePanel =
                 new ExecutionTracePanel();
+
+        stackPanel = new StackPanel();
+        queuePanel = new QueuePanel();
+        memoryPanel = new MemoryPanel();
+
+        views.add(cpuStatePanel);
+        views.add(stackPanel);
+        views.add(queuePanel);
+        views.add(memoryPanel);
 
         statusBar =
                 new JLabel(
@@ -90,6 +109,16 @@ public class MainWindow extends JFrame {
                 BorderLayout.NORTH
         );
 
+        JPanel infoGrid =
+                new JPanel(
+                        new GridLayout(2, 2, 8, 8)
+                );
+
+        infoGrid.add(cpuStatePanel);
+        infoGrid.add(stackPanel);
+        infoGrid.add(queuePanel);
+        infoGrid.add(memoryPanel);
+
         JPanel center =
                 new JPanel(
                         new GridLayout(
@@ -101,7 +130,7 @@ public class MainWindow extends JFrame {
                 );
 
         center.add(programPanel);
-        center.add(cpuStatePanel);
+        center.add(infoGrid);
 
         add(
                 center,
@@ -134,6 +163,9 @@ public class MainWindow extends JFrame {
         );
     }
 
+    // Demonstration program covering all 12 instructions: MOV_A_DATA,
+    // MOV_RN_DATA, ADD, SUBB, ANL, INC, SJMP, HALT, plus the Week 3
+    // additions PUSH, POP, ENQUEUE, DEQUEUE.
     private ArrayList<Instruction> createProgram() {
 
         ArrayList<Instruction> list =
@@ -157,6 +189,48 @@ public class MainWindow extends JFrame {
                 new Instruction(
                         "ADD",
                         Arrays.asList("R1")
+                )
+        );
+
+        list.add(
+                new Instruction(
+                        "PUSH",
+                        Arrays.asList("A")
+                )
+        );
+
+        list.add(
+                new Instruction(
+                        "MOV_A_DATA",
+                        Arrays.asList("99")
+                )
+        );
+
+        list.add(
+                new Instruction(
+                        "POP",
+                        Arrays.asList("A")
+                )
+        );
+
+        list.add(
+                new Instruction(
+                        "ENQUEUE",
+                        Arrays.asList("A")
+                )
+        );
+
+        list.add(
+                new Instruction(
+                        "ENQUEUE",
+                        Arrays.asList("#20")
+                )
+        );
+
+        list.add(
+                new Instruction(
+                        "DEQUEUE",
+                        Arrays.asList("R2")
                 )
         );
 
@@ -231,10 +305,7 @@ public class MainWindow extends JFrame {
 
         programPanel.showProgram(program);
 
-        cpuStatePanel.updateState(
-                cpu,
-                "Ready"
-        );
+        updateAllPanels("Ready");
 
         programPanel.showNextInstruction(
                 cpu.getPC(),
@@ -264,8 +335,24 @@ public class MainWindow extends JFrame {
         int oldPC =
                 cpu.getPC();
 
-        Instruction instruction =
-                cpu.step();
+        Instruction instruction;
+
+        try {
+            instruction = cpu.step();
+        } catch (RuntimeException ex) {
+
+            stopTimer();
+
+            tracePanel.addTrace(
+                    "ERROR   : " + ex.getMessage()
+            );
+
+            statusBar.setText(
+                    " Status: Error - " + ex.getMessage()
+            );
+
+            return;
+        }
 
         if (instruction == null) {
             return;
@@ -277,17 +364,17 @@ public class MainWindow extends JFrame {
         );
 
         tracePanel.addTrace(
-        "FETCH   ✓ : PC = "
+        "FETCH   \u2713 : PC = "
                 + String.format("%04XH", oldPC)
 );
 
 tracePanel.addTrace(
-        "DECODE  ✓ : "
+        "DECODE  \u2713 : "
                 + instruction
 );
 
 tracePanel.addTrace(
-        "EXECUTE ✓ : "
+        "EXECUTE \u2713 : "
                 + instruction.mnemonic
 );
         tracePanel.addTrace(
@@ -325,11 +412,25 @@ tracePanel.addTrace(
         );
 
         tracePanel.addTrace(
+                "SP      : "
+                        + String.format(
+                        "%02XH",
+                        cpu.getSP()
+                )
+        );
+
+        tracePanel.addTrace(
+                "Queue   : "
+                        + cpu.getQueue().getCount()
+                        + "/"
+                        + cpu.getQueue().getCapacity()
+        );
+
+        tracePanel.addTrace(
                 "--------------------------------"
         );
 
-        cpuStatePanel.updateState(
-                cpu,
+        updateAllPanels(
                 cpu.isRunning()
                         ? "Running"
                         : "Halted"
@@ -387,10 +488,7 @@ tracePanel.addTrace(
 
         tracePanel.clearTrace();
 
-        cpuStatePanel.updateState(
-                cpu,
-                "Ready"
-        );
+        updateAllPanels("Ready");
 
         programPanel.showNextInstruction(
                 cpu.getPC(),
@@ -400,6 +498,13 @@ tracePanel.addTrace(
         statusBar.setText(
                 " Status: CPU Reset."
         );
+    }
+
+    private void updateAllPanels(String status) {
+        CpuSnapshot snapshot = cpu.getSnapshot();
+        for (CpuView view : views) {
+            view.refresh(snapshot, status);
+        }
     }
 
     private void stopTimer() {

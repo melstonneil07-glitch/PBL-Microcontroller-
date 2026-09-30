@@ -54,7 +54,7 @@
 
 **4.Complete integration of all modules.**
 
-## Carry forward to Week 2:
+## Carry forward to Week 3:
 **1.Additional instruction implementation.**
 
 **2.Improved memory operations.**
