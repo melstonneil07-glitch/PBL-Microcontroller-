@@ -1,5 +1,3 @@
-# Minutes of Meeting – Week 3
-
 **Date: 26-09-2026**
 
 **Meeting Number: 3**
