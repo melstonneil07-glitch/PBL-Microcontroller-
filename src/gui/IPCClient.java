@@ -1,334 +1,431 @@
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import com.sun.jna.Library;
+import com.sun.jna.Native;
+import com.sun.jna.NativeLong;
+import com.sun.jna.Pointer;
 
-/**
- * IPCClient
- *
- * GUI <-> CORE communication using POSIX Named Pipes (FIFO).
- *
- * GUI -> Core:
- *      /tmp/ms51_ipc/ui_to_core.fifo
- *
- * Core -> GUI:
- *      /tmp/ms51_ipc/core_to_ui.fifo
- *
- * The Core internally uses POSIX Message Queue.
- * The Core -> Logging connection uses POSIX Socket.
- */
+import java.nio.charset.StandardCharsets;
+
 public class IPCClient {
 
-    private static final String IPC_DIRECTORY =
-            "/tmp/ms51_ipc";
-
-    private static final String UI_TO_CORE =
-            IPC_DIRECTORY + "/ui_to_core.fifo";
-
-    private static final String CORE_TO_UI =
-            IPC_DIRECTORY + "/core_to_ui.fifo";
-
-    private BufferedWriter writer;
-    private BufferedReader reader;
-
-    private Thread readerThread;
-
-    private volatile boolean connected = false;
-
-    private MessageListener listener;
-
-
-    /* =====================================================
-       MESSAGE LISTENER
-       ===================================================== */
+    // =========================================================
+    // MESSAGE LISTENER
+    // =========================================================
 
     public interface MessageListener {
         void onMessage(String message);
-        void onConnectionChanged(boolean connected);
     }
 
+    // =========================================================
+    // POSIX LIBRARY
+    // =========================================================
 
-    /* =====================================================
-       CONSTRUCTOR
-       ===================================================== */
+    interface PosixIPC extends Library {
+
+        PosixIPC INSTANCE = Native.load("c", PosixIPC.class);
+
+        int mq_open(
+                String name,
+                int oflag,
+                int mode,
+                Pointer attr
+        );
+
+        int mq_send(
+                int mqdes,
+                byte[] message,
+                NativeLong length,
+                int priority
+        );
+
+        int mq_receive(
+                int mqdes,
+                byte[] message,
+                NativeLong length,
+                Pointer priority
+        );
+
+        int mq_close(int mqdes);
+
+        int mq_unlink(String name);
+    }
+
+    // =========================================================
+    // POSIX CONSTANTS
+    // =========================================================
+
+    private static final int O_RDWR = 0x0002;
+
+    // =========================================================
+    // MESSAGE QUEUE NAMES
+    // =========================================================
+
+    private static final String GUI_TO_CORE_QUEUE =
+            "/microcontroller_gui_to_core";
+
+    private static final String CORE_TO_GUI_QUEUE =
+            "/microcontroller_core_to_gui";
+
+    // =========================================================
+    // QUEUE DESCRIPTORS
+    // =========================================================
+
+    private int guiToCoreQueue = -1;
+
+    private int coreToGuiQueue = -1;
+
+    // =========================================================
+    // STATE
+    // =========================================================
+
+    private volatile boolean connected = false;
+
+    private volatile boolean listening = false;
+
+    private Thread receiverThread;
+
+    private final MessageListener listener;
+
+    // =========================================================
+    // CONSTRUCTOR
+    // =========================================================
 
     public IPCClient(MessageListener listener) {
+
         this.listener = listener;
     }
 
-
-    /* =====================================================
-       CONNECT TO CORE
-       ===================================================== */
+    // =========================================================
+    // CONNECT
+    // =========================================================
 
     public boolean connect() {
 
+        if (connected) {
+            return true;
+        }
+
         try {
 
-            Path directory = Paths.get(IPC_DIRECTORY);
-
-            if (!Files.exists(directory)) {
-                Files.createDirectories(directory);
-            }
-
             /*
-             * FIFO files should normally be created by
-             * the Core process using mkfifo.
-             *
-             * We do NOT create normal files here because
-             * they are not POSIX FIFOs.
+             * The Core creates the POSIX queues.
+             * The GUI only opens them.
              */
 
-            if (!Files.exists(Paths.get(UI_TO_CORE))) {
+            guiToCoreQueue =
+                    PosixIPC.INSTANCE.mq_open(
+                            GUI_TO_CORE_QUEUE,
+                            O_RDWR,
+                            0,
+                            Pointer.NULL
+                    );
 
-                System.out.println(
-                        "[IPC] UI -> Core FIFO not found."
-                );
+            if (guiToCoreQueue == -1) {
 
                 return false;
             }
 
-            if (!Files.exists(Paths.get(CORE_TO_UI))) {
+            coreToGuiQueue =
+                    PosixIPC.INSTANCE.mq_open(
+                            CORE_TO_GUI_QUEUE,
+                            O_RDWR,
+                            0,
+                            Pointer.NULL
+                    );
 
-                System.out.println(
-                        "[IPC] Core -> UI FIFO not found."
+            if (coreToGuiQueue == -1) {
+
+                PosixIPC.INSTANCE.mq_close(
+                        guiToCoreQueue
                 );
+
+                guiToCoreQueue = -1;
 
                 return false;
             }
-
-
-            /*
-             * Open GUI -> Core pipe.
-             */
-
-            writer = Files.newBufferedWriter(
-                    Paths.get(UI_TO_CORE),
-                    StandardCharsets.UTF_8,
-                    StandardOpenOption.WRITE
-            );
-
-
-            /*
-             * Open Core -> GUI pipe.
-             */
-
-            reader = Files.newBufferedReader(
-                    Paths.get(CORE_TO_UI),
-                    StandardCharsets.UTF_8
-            );
-
 
             connected = true;
 
-            if (listener != null) {
-                listener.onConnectionChanged(true);
-            }
-
-
-            /*
-             * Start receiver thread.
-             */
-
-            startReaderThread();
-
-
-            System.out.println(
-                    "[IPC] Connected to Core."
-            );
+            startReceiver();
 
             return true;
 
         } catch (Exception e) {
 
-            System.out.println(
-                    "[IPC] Connection failed: "
-                            + e.getMessage()
-            );
+            close();
 
-            connected = false;
+            return false;
+        }
+    }
+
+    // =========================================================
+    // CONNECT WITH RETRY
+    // =========================================================
+
+    public boolean connectWithRetry(
+            int attempts,
+            int delayMillis
+    ) {
+
+        for (int i = 0; i < attempts; i++) {
+
+            if (connect()) {
+                return true;
+            }
+
+            try {
+
+                Thread.sleep(delayMillis);
+
+            } catch (InterruptedException e) {
+
+                Thread.currentThread().interrupt();
+
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    // =========================================================
+    // START RECEIVER
+    // =========================================================
+
+    private void startReceiver() {
+
+        if (listening) {
+            return;
+        }
+
+        listening = true;
+
+        receiverThread =
+                new Thread(
+                        this::receiveLoop,
+                        "Core-To-GUI-Receiver"
+                );
+
+        receiverThread.setDaemon(true);
+
+        receiverThread.start();
+    }
+
+    // =========================================================
+    // RECEIVE LOOP
+    // =========================================================
+
+    private void receiveLoop() {
+
+        byte[] buffer =
+                new byte[8192];
+
+        while (
+                listening &&
+                connected
+        ) {
+
+            try {
+
+                int received =
+                        PosixIPC.INSTANCE.mq_receive(
+                                coreToGuiQueue,
+                                buffer,
+                                new NativeLong(
+                                        buffer.length
+                                ),
+                                Pointer.NULL
+                        );
+
+                if (received < 0) {
+
+                    continue;
+                }
+
+                String message =
+                        new String(
+                                buffer,
+                                0,
+                                received,
+                                StandardCharsets.UTF_8
+                        );
+
+                if (listener != null) {
+
+                    listener.onMessage(
+                            message
+                    );
+                }
+
+            } catch (Exception e) {
+
+                if (
+                        connected &&
+                        listener != null
+                ) {
+
+                    listener.onMessage(
+                            "ERROR|IPC receive error: "
+                                    + e.getMessage()
+                    );
+                }
+
+                break;
+            }
+        }
+    }
+
+    // =========================================================
+    // SEND MESSAGE
+    // =========================================================
+
+    private boolean send(
+            String message
+    ) {
+
+        if (
+                !connected ||
+                guiToCoreQueue == -1
+        ) {
+
+            return false;
+        }
+
+        try {
+
+            byte[] data =
+                    message.getBytes(
+                            StandardCharsets.UTF_8
+                    );
+
+            int result =
+                    PosixIPC.INSTANCE.mq_send(
+                            guiToCoreQueue,
+                            data,
+                            new NativeLong(
+                                    data.length
+                            ),
+                            0
+                    );
+
+            return result == 0;
+
+        } catch (Exception e) {
 
             if (listener != null) {
-                listener.onConnectionChanged(false);
+
+                listener.onMessage(
+                        "ERROR|IPC send error: "
+                                + e.getMessage()
+                );
             }
 
             return false;
         }
     }
 
+    // =========================================================
+    // LOAD PROGRAM
+    // =========================================================
 
-    /* =====================================================
-       START READER THREAD
-       ===================================================== */
+    public boolean loadProgram(
+            String program
+    ) {
 
-    private void startReaderThread() {
-
-        readerThread = new Thread(() -> {
-
-            try {
-
-                String message;
-
-                while (connected &&
-                        (message = reader.readLine()) != null) {
-
-                    final String received = message;
-
-                    if (listener != null) {
-
-                        javax.swing.SwingUtilities.invokeLater(
-                                () -> listener.onMessage(received)
-                        );
-                    }
-                }
-
-            } catch (IOException e) {
-
-                if (connected) {
-
-                    System.out.println(
-                            "[IPC] Core connection closed."
-                    );
-
-                    connected = false;
-
-                    if (listener != null) {
-
-                        javax.swing.SwingUtilities.invokeLater(
-                                () -> listener.onConnectionChanged(false)
-                        );
-                    }
-                }
-            }
-
-        }, "Core-Receiver");
-
-        readerThread.setDaemon(true);
-        readerThread.start();
-    }
-
-
-    /* =====================================================
-       SEND COMMAND
-       ===================================================== */
-
-    public synchronized void sendCommand(String command) {
-
-        if (!connected || writer == null) {
-
-            System.out.println(
-                    "[IPC] Core is not connected."
-            );
-
-            return;
-        }
-
-        try {
-
-            writer.write(command);
-            writer.newLine();
-            writer.flush();
-
-            System.out.println(
-                    "[IPC] Sent: " + command
-            );
-
-        } catch (IOException e) {
-
-            System.out.println(
-                    "[IPC] Send failed: "
-                            + e.getMessage()
-            );
-        }
-    }
-
-
-    /* =====================================================
-       COMMON CORE COMMANDS
-       ===================================================== */
-
-    public void runCPU() {
-        sendCommand("RUN");
-    }
-
-    public void stepCPU() {
-        sendCommand("STEP");
-    }
-
-    public void resetCPU() {
-        sendCommand("RESET");
-    }
-
-    public void stopCPU() {
-        sendCommand("STOP");
-    }
-
-    public void loadProgram() {
-        sendCommand("LOAD_PROGRAM");
-    }
-
-    public void startProcess() {
-        sendCommand("START_PROCESS");
-    }
-
-    public void setPriority(int priority) {
-        sendCommand("SET_PRIORITY " + priority);
-    }
-
-
-    /* =====================================================
-       SEND CUSTOM COMMAND
-       ===================================================== */
-
-    public void sendCustomCommand(String command) {
-
-        if (command == null ||
-                command.trim().isEmpty()) {
-            return;
-        }
-
-        sendCommand(command.trim());
-    }
-
-
-    /* =====================================================
-       DISCONNECT
-       ===================================================== */
-
-    public void disconnect() {
-
-        connected = false;
-
-        try {
-
-            if (writer != null) {
-                writer.close();
-            }
-
-            if (reader != null) {
-                reader.close();
-            }
-
-        } catch (IOException ignored) {
-        }
-
-        writer = null;
-        reader = null;
-
-        if (listener != null) {
-            listener.onConnectionChanged(false);
-        }
-
-        System.out.println(
-                "[IPC] Disconnected from Core."
+        return send(
+                "LOAD|" + program
         );
     }
 
+    // =========================================================
+    // STEP
+    // =========================================================
 
-    /* =====================================================
-       CONNECTION STATUS
-       ===================================================== */
+    public boolean stepCPU() {
+
+        return send("STEP");
+    }
+
+    // =========================================================
+    // RESET
+    // =========================================================
+
+    public boolean resetCPU() {
+
+        return send("RESET");
+    }
+
+    // =========================================================
+    // PING
+    // =========================================================
+
+    public boolean ping() {
+
+        return send("PING");
+    }
+
+    // =========================================================
+    // SHUTDOWN
+    // =========================================================
+
+    public boolean shutdownCore() {
+
+        return send("SHUTDOWN");
+    }
+
+    // =========================================================
+    // CONNECTION STATUS
+    // =========================================================
 
     public boolean isConnected() {
+
         return connected;
+    }
+
+    // =========================================================
+    // CLOSE
+    // =========================================================
+
+    public void close() {
+
+        listening = false;
+
+        connected = false;
+
+        if (guiToCoreQueue != -1) {
+
+            try {
+
+                PosixIPC.INSTANCE.mq_close(
+                        guiToCoreQueue
+                );
+
+            } catch (Exception ignored) {
+            }
+
+            guiToCoreQueue = -1;
+        }
+
+        if (coreToGuiQueue != -1) {
+
+            try {
+
+                PosixIPC.INSTANCE.mq_close(
+                        coreToGuiQueue
+                );
+
+            } catch (Exception ignored) {
+            }
+
+            coreToGuiQueue = -1;
+        }
+    }
+
+    // =========================================================
+    // DISCONNECT
+    // =========================================================
+
+    public void disconnect() {
+
+        close();
     }
 }
