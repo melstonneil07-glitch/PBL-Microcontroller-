@@ -1,138 +1,37 @@
 package gui;
 
+import cpu_core.Instruction;
 import java.awt.BorderLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
-
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
-import com.sun.jna.Library;
-import com.sun.jna.Native;
-import com.sun.jna.NativeLong;
-import com.sun.jna.Pointer;
-
-import cpu_core.Instruction;
-
 public class MainWindow extends JFrame
 {
     // =========================================================
-    // POSIX IPC
+    // JAVA SOCKET IPC
     // =========================================================
 
-    interface PosixIPC extends Library
-    {
-        PosixIPC INSTANCE = Native.load("c", PosixIPC.class);
+    private static final String CORE_HOST = "127.0.0.1";
+    private static final int CORE_PORT = 5000;
 
-        int mq_open(
-                String name,
-                int oflag,
-                int mode,
-                Pointer attr
-        );
-
-        int mq_send(
-                int mqdes,
-                byte[] message,
-                NativeLong length,
-                int priority
-        );
-
-        int mq_receive(
-                int mqdes,
-                byte[] message,
-                NativeLong length,
-                Pointer priority
-        );
-
-        int mq_close(int mqdes);
-
-        int shm_open(
-                String name,
-                int oflag,
-                int mode
-        );
-
-        Pointer mmap(
-                Pointer addr,
-                NativeLong length,
-                int prot,
-                int flags,
-                int fd,
-                NativeLong offset
-        );
-
-        int munmap(
-                Pointer addr,
-                NativeLong length
-        );
-
-        Pointer sem_open(
-                String name,
-                int oflag,
-                int mode,
-                int value
-        );
-
-        int sem_wait(Pointer semaphore);
-
-        int sem_post(Pointer semaphore);
-
-        int sem_close(Pointer semaphore);
-    }
-
-    // =========================================================
-    // POSIX CONSTANTS
-    // =========================================================
-
-    private static final int O_CREAT = 0x40;
-    private static final int O_RDWR = 0x2;
-    private static final int O_NONBLOCK = 0x800;
-
-    private static final int PROT_READ = 0x1;
-    private static final int PROT_WRITE = 0x2;
-
-    private static final int MAP_SHARED = 0x01;
-
-    // =========================================================
-    // IPC NAMES
-    // =========================================================
-
-    private static final String GUI_TO_CORE_QUEUE =
-            "/microcontroller_gui_to_core";
-
-    private static final String CORE_TO_GUI_QUEUE =
-            "/microcontroller_core_to_gui";
-
-    private static final String SHM_NAME =
-            "/microcontroller_shared_memory";
-
-    private static final String SEM_NAME =
-            "/microcontroller_semaphore";
-
-    private static final int SHARED_MEMORY_SIZE = 28;
-
-    // =========================================================
-    // IPC HANDLES
-    // =========================================================
-
-    private int guiToCoreQueue = -1;
-
-    private int coreToGuiQueue = -1;
-
-    private int sharedMemoryFd = -1;
-
-    private Pointer sharedMemory = Pointer.NULL;
-
-    private Pointer semaphore = Pointer.NULL;
+    private Socket coreSocket;
+    private BufferedReader coreReader;
+    private BufferedWriter coreWriter;
 
     // =========================================================
     // GUI
@@ -180,6 +79,24 @@ public class MainWindow extends JFrame
                 JFrame.EXIT_ON_CLOSE
         );
 
+        addWindowListener(
+                new java.awt.event.WindowAdapter()
+                {
+                    @Override
+                    public void windowClosing(
+                            java.awt.event.WindowEvent e
+                    )
+                    {
+                        if (coreWriter != null)
+                        {
+                            sendCommand("SHUTDOWN");
+                        }
+
+                        cleanupIPC();
+                    }
+                }
+        );
+
         setLocationRelativeTo(null);
 
         controlPanel =
@@ -218,11 +135,9 @@ public class MainWindow extends JFrame
 
         startReceiverTimer();
     }
-
     // =========================================================
     // GUI LAYOUT
     // =========================================================
-
     private void createLayout()
     {
         setLayout(
@@ -306,11 +221,8 @@ public class MainWindow extends JFrame
                 BorderLayout.SOUTH
         );
     }
-
-    // =========================================================
     // PROGRAM
     // =========================================================
-
     private ArrayList<Instruction> createProgram()
     {
         ArrayList<Instruction> list =
@@ -416,11 +328,9 @@ public class MainWindow extends JFrame
 
         return list;
     }
-
     // =========================================================
     // BUTTONS
     // =========================================================
-
     private void connectButtons()
     {
         controlPanel
@@ -447,118 +357,51 @@ public class MainWindow extends JFrame
                         e -> resetProgram()
                 );
     }
-
     // =========================================================
     // CONNECT TO CORE
     // =========================================================
-
     private void connectToCore()
     {
-        guiToCoreQueue =
-                PosixIPC.INSTANCE.mq_open(
-                        GUI_TO_CORE_QUEUE,
-                        O_RDWR,
-                        0666,
-                        Pointer.NULL
-                );
-
-        if (guiToCoreQueue == -1)
+        try
         {
-            statusBar.setText(
-                    " Status: Core queue not available."
+            coreSocket = new Socket(CORE_HOST, CORE_PORT);
+
+            coreReader = new BufferedReader(
+                    new InputStreamReader(
+                            coreSocket.getInputStream(),
+                            StandardCharsets.UTF_8
+                    )
             );
 
-            return;
-        }
-
-        coreToGuiQueue =
-                PosixIPC.INSTANCE.mq_open(
-                        CORE_TO_GUI_QUEUE,
-                        O_RDWR | O_NONBLOCK,
-                        0666,
-                        Pointer.NULL
-                );
-
-        if (coreToGuiQueue == -1)
-        {
-            statusBar.setText(
-                    " Status: Core response queue not available."
+            coreWriter = new BufferedWriter(
+                    new OutputStreamWriter(
+                            coreSocket.getOutputStream(),
+                            StandardCharsets.UTF_8
+                    )
             );
 
-            return;
-        }
+            coreReady = false;
 
-        sharedMemoryFd =
-                PosixIPC.INSTANCE.shm_open(
-                        SHM_NAME,
-                        O_RDWR,
-                        0666
-                );
-
-        if (sharedMemoryFd == -1)
-        {
             statusBar.setText(
-                    " Status: Shared memory not available."
+                    " Status: Connected to Core. Waiting for READY..."
             );
 
-            return;
+            sendCommand("PING");
         }
-
-        sharedMemory =
-                PosixIPC.INSTANCE.mmap(
-                        Pointer.NULL,
-                        new NativeLong(
-                                SHARED_MEMORY_SIZE
-                        ),
-                        PROT_READ | PROT_WRITE,
-                        MAP_SHARED,
-                        sharedMemoryFd,
-                        new NativeLong(0)
-                );
-
-        if (
-                Pointer.nativeValue(sharedMemory)
-                        == -1L
-        )
+        catch (IOException ex)
         {
             statusBar.setText(
-                    " Status: Shared memory mapping failed."
+                    " Status: Core not available. Start Core first."
             );
 
-            return;
-        }
-
-        semaphore =
-                PosixIPC.INSTANCE.sem_open(
-                        SEM_NAME,
-                        0,
-                        0666,
-                        1
-                );
-
-        if (
-                Pointer.nativeValue(semaphore)
-                        == -1L
-        )
-        {
-            statusBar.setText(
-                    " Status: Semaphore not available."
+            System.err.println(
+                    "Could not connect to Core: " + ex.getMessage()
             );
-
-            return;
         }
-
-        sendCommand("PING");
-
-        statusBar.setText(
-                " Status: Connected to Core."
-        );
     }
-
     // =========================================================
     // LOAD
     // =========================================================
-
     private void loadProgram()
     {
         if (!isConnected())
@@ -592,11 +435,8 @@ public class MainWindow extends JFrame
                 " Status: Program sent to Core."
         );
     }
-
-    // =========================================================
     // STEP
     // =========================================================
-
     private void stepProgram()
     {
         if (!isConnected())
@@ -614,11 +454,9 @@ public class MainWindow extends JFrame
                 " Status: STEP command sent to Core."
         );
     }
-
     // =========================================================
     // RUN
     // =========================================================
-
     private void runProgram()
     {
         if (!isConnected())
@@ -645,11 +483,9 @@ public class MainWindow extends JFrame
                 " Status: Running through Core..."
         );
     }
-
     // =========================================================
     // RESET
     // =========================================================
-
     private void resetProgram()
     {
         stopTimer();
@@ -678,97 +514,83 @@ public class MainWindow extends JFrame
                 " Status: Reset command sent to Core."
         );
     }
-
     // =========================================================
     // SEND COMMAND TO CORE
     // =========================================================
-
     private void sendCommand(String command)
     {
-        if (guiToCoreQueue == -1)
-            return;
-
-        byte[] message =
-                command.getBytes(
-                        StandardCharsets.UTF_8
-                );
-
-        int result =
-                PosixIPC.INSTANCE.mq_send(
-                        guiToCoreQueue,
-                        message,
-                        new NativeLong(
-                                message.length
-                        ),
-                        0
-                );
-
-        if (result != 0)
+        if (coreWriter == null)
         {
+            return;
+        }
+
+        try
+        {
+            coreWriter.write(command);
+            coreWriter.newLine();
+            coreWriter.flush();
+        }
+        catch (IOException ex)
+        {
+            coreReady = false;
+
             statusBar.setText(
-                    " Status: Failed to send command."
+                    " Status: Failed to send command to Core."
+            );
+
+            System.err.println(
+                    "Core send error: " + ex.getMessage()
             );
         }
     }
-
     // =========================================================
     // RECEIVE CORE UPDATES
     // =========================================================
-
     private void startReceiverTimer()
     {
         Timer receiverTimer =
-                new Timer(
-                        100,
-                        e -> receiveCoreMessages()
-                );
+                new Timer(100, e -> receiveCoreMessages());
 
         receiverTimer.start();
     }
 
     private void receiveCoreMessages()
     {
-        if (coreToGuiQueue == -1)
-            return;
-
-        byte[] received =
-                new byte[8192];
-
-        int result;
-
-        do
+        if (coreReader == null)
         {
-            result =
-                    PosixIPC.INSTANCE.mq_receive(
-                            coreToGuiQueue,
-                            received,
-                            new NativeLong(
-                                    received.length
-                            ),
-                            Pointer.NULL
-                    );
+            return;
+        }
 
-            if (result > 0)
+        try
+        {
+            while (coreReader.ready())
             {
-                String message =
-                        new String(
-                                received,
-                                0,
-                                result,
-                                StandardCharsets.UTF_8
-                        );
+                String message = coreReader.readLine();
+
+                if (message == null)
+                {
+                    coreReady = false;
+                    statusBar.setText(
+                            " Status: Core disconnected."
+                    );
+                    return;
+                }
 
                 processCoreMessage(message);
             }
-
         }
-        while (result > 0);
-    }
+        catch (IOException ex)
+        {
+            coreReady = false;
 
+            statusBar.setText(
+                    " Status: Core connection lost."
+            );
+        }
+    }
     // =========================================================
     // PROCESS CORE MESSAGE
     // =========================================================
-
     private void processCoreMessage(
             String message
     )
@@ -887,11 +709,9 @@ public class MainWindow extends JFrame
             );
         }
     }
-
     // =========================================================
     // PROCESS STEP MESSAGE
     // =========================================================
-
     private void processStepMessage(
             String message
     )
@@ -1089,70 +909,11 @@ public class MainWindow extends JFrame
 
     private void readSharedMemory()
     {
-        if (
-                sharedMemory == Pointer.NULL ||
-                semaphore == Pointer.NULL
-        )
-        {
-            return;
-        }
-
-        if (
-                Pointer.nativeValue(semaphore)
-                        == -1L
-        )
-        {
-            return;
-        }
-
-        int result =
-                PosixIPC.INSTANCE.sem_wait(
-                        semaphore
-                );
-
-        if (result != 0)
-            return;
-
-        try
-        {
-            int a =
-                    sharedMemory.getInt(0);
-
-            int pc =
-                    sharedMemory.getInt(4);
-
-            int sp =
-                    sharedMemory.getInt(8);
-
-            int cy =
-                    sharedMemory.getInt(12);
-
-            int ov =
-                    sharedMemory.getInt(16);
-
-            int r1 =
-                    sharedMemory.getInt(20);
-
-            int queue =
-                    sharedMemory.getInt(24);
-
-            System.out.println(
-                    "Shared Memory -> "
-                            + "A=" + a
-                            + ", PC=" + pc
-                            + ", SP=" + sp
-                            + ", CY=" + cy
-                            + ", OV=" + ov
-                            + ", R1=" + r1
-                            + ", QUEUE=" + queue
-            );
-        }
-        finally
-        {
-            PosixIPC.INSTANCE.sem_post(
-                    semaphore
-            );
-        }
+        /*
+         * The Windows/Java version no longer uses POSIX shared memory.
+         * CPU state is delivered directly in the STEP message from Core.
+         * This method is kept so the existing GUI flow remains simple.
+         */
     }
 
     // =========================================================
@@ -1198,11 +959,9 @@ public class MainWindow extends JFrame
 
         return result.toString();
     }
-
     // =========================================================
     // INTEGER PARSER
     // =========================================================
-
     private int parseInt(String value)
     {
         try
@@ -1221,8 +980,10 @@ public class MainWindow extends JFrame
     private boolean isConnected()
     {
         return
-                guiToCoreQueue != -1 &&
-                coreToGuiQueue != -1 &&
+                coreSocket != null &&
+                coreSocket.isConnected() &&
+                !coreSocket.isClosed() &&
+                coreWriter != null &&
                 coreReady;
     }
     // STOP TIMER
@@ -1242,41 +1003,20 @@ public class MainWindow extends JFrame
     {
         stopTimer();
 
-        if (guiToCoreQueue != -1)
+        if (coreSocket != null)
         {
-            PosixIPC.INSTANCE.mq_close(
-                    guiToCoreQueue
-            );
-
-            guiToCoreQueue = -1;
+            try
+            {
+                coreSocket.close();
+            }
+            catch (IOException ignored)
+            {
+            }
         }
-        if (coreToGuiQueue != -1)
-        {
-            PosixIPC.INSTANCE.mq_close(
-                    coreToGuiQueue
-            );
-
-            coreToGuiQueue = -1;
-        }
-        if (semaphore != Pointer.NULL)
-        {
-            PosixIPC.INSTANCE.sem_close(
-                    semaphore
-            );
-
-            semaphore = Pointer.NULL;
-        }
-        if (sharedMemory != Pointer.NULL)
-        {
-            PosixIPC.INSTANCE.munmap(
-                    sharedMemory,
-                    new NativeLong(
-                            SHARED_MEMORY_SIZE
-                    )
-            );
-
-            sharedMemory = Pointer.NULL;
-        }
+        coreSocket = null;
+        coreReader = null;
+        coreWriter = null;
+        coreReady = false;
     }
     // MAIN
     public static void main(String[] args)
