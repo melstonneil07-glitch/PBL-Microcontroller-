@@ -6,8 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 /** Windows/Java-only Week 4 Core Process. UI <-> Core uses localhost:5000.
- * Core -> Logger uses localhost:5001. No JNA, Linux, shared memory, or POSIX APIs.
- */
+ * Core -> Logger uses localhost:5001.. */
 public class CoreProcess {
     private static final int CORE_PORT = 5000;
     private static final int LOGGER_PORT = 5001;
@@ -25,12 +24,10 @@ public class CoreProcess {
         CPU cpu = new CPU();
         System.out.println("CPU created successfully");
         System.out.println("Java Socket IPC: UI=" + CORE_PORT + ", Logger=" + LOGGER_PORT);
-
         try {
             coreServer = new ServerSocket(CORE_PORT);
             startLoggerServer();
             System.out.println("Core is READY. Waiting for UI on port " + CORE_PORT + "...");
-
             uiSocket = coreServer.accept();
             uiWriter = new BufferedWriter(new OutputStreamWriter(uiSocket.getOutputStream(), StandardCharsets.UTF_8));
             BufferedReader uiReader = new BufferedReader(new InputStreamReader(uiSocket.getInputStream(), StandardCharsets.UTF_8));
@@ -153,7 +150,6 @@ public class CoreProcess {
             }
         }
     }
-
     private static ArrayList<Instruction> parseProgram(String programData) {
         ArrayList<Instruction> program = new ArrayList<>();
         if (programData == null || programData.isEmpty()) return program;
@@ -169,12 +165,10 @@ public class CoreProcess {
         }
         return program;
     }
-
     private static String safeMessage(RuntimeException ex) {
         String m = ex.getMessage();
         return (m == null || m.trim().isEmpty()) ? ex.getClass().getSimpleName() : m.replace('\n', ' ').replace('\r', ' ');
     }
-
     private static void cleanup() {
         running = false;
         System.out.println("Cleaning up Core IPC...");
