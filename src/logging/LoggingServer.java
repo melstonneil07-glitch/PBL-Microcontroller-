@@ -55,7 +55,7 @@ public class LoggingServer {
         writerThread.setDaemon(true);
         writerThread.start();
 
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
+        try (ServerSocket serverSocket = new ServerSocket(port, 50, java.net.InetAddress.getByName("127.0.0.1"))) {
             System.out.println("[LoggingServer] Listening on 127.0.0.1:" + port
                     + "  (writing to " + logFile.toAbsolutePath() + ")");
 
@@ -86,8 +86,10 @@ public class LoggingServer {
                 try {
                     LogMessage msg = LogMessage.parse(line);
                     queue.put(msg);
-                } catch (IllegalArgumentException parseEx) {
-                    System.err.println("[LoggingServer] " + parseEx.getMessage());
+                } catch (RuntimeException parseEx) {
+                    // Malformed line (bad format, timestamp or level): skip it
+                    // but keep serving this client instead of dropping it.
+                    System.err.println("[LoggingServer] Ignored bad log line: " + parseEx.getMessage());
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     break;

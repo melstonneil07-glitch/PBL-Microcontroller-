@@ -7,12 +7,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import logging.LoggingServer;
 
 /** Displays the demonstration program and only state reported by the Core. */
 public final class MainWindow extends JFrame implements TCPClient.MessageListener {
     private static final String HOST = "127.0.0.1";
-    private static final int CORE_PORT = 5000;
-    private static final int LOGGER_PORT = 5001;
+    private static final int CORE_PORT = Integer.getInteger("sim.corePort", cpu_core.CoreProcess.DEFAULT_CORE_PORT);
+    private static final int LOGGER_PORT = Integer.getInteger("sim.logPort", LoggingServer.DEFAULT_PORT);
 
     private static final Color NAVY = new Color(20, 39, 63);
     private static final Color CANVAS = new Color(239, 244, 249);
@@ -20,17 +21,7 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
     private static final Color MUTED = new Color(105, 123, 143);
     private static final Color TEAL = new Color(16, 139, 151);
 
-    private static final String[] CORE_PROGRAM = {
-        "MOV_A_DATA:10", "MOV_RN_DATA:R1,3", "ADD:R1", "PUSH:A",
-        "MOV_A_DATA:99", "POP:A", "ENQUEUE:A", "ENQUEUE:#20",
-        "DEQUEUE:R2", "SUBB:R1", "ANL:R1", "INC:R1", "SJMP:0", "HALT"
-    };
-
-    private static final String[] DISPLAY_PROGRAM = {
-        "MOV A,#10", "MOV R1,#3", "ADD A,R1", "PUSH A",
-        "MOV A,#99", "POP A", "ENQUEUE A", "ENQUEUE #20",
-        "DEQUEUE R2", "SUBB A,R1", "ANL A,R1", "INC R1", "SJMP 0", "HALT"
-    };
+    private static final String[][] DEMO_PROCESSES = DemoWorkload.PROCESSES;
 
     private final DefaultListModel<String> programModel = new DefaultListModel<>();
     private final JList<String> programList = new JList<>(programModel);
@@ -50,6 +41,9 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
     private final JTextArea memoryArea = new JTextArea();
     private final JTextArea traceArea = new JTextArea();
     private final JTextArea logArea = new JTextArea();
+    private final SchedulerPanel schedulerPanel = new SchedulerPanel();
+    // Display text of the program the CPU is currently running (changes on each dispatch).
+    private String[] displayProgram = new String[0];
     private final TCPClient tcpClient = new TCPClient(HOST, CORE_PORT, LOGGER_PORT);
     private final TCPClient.MessageListener tcpListener = new TCPClient.MessageListener() {
         @Override public void onCoreMessage(String message) {
@@ -293,9 +287,9 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
     private JPanel createFooter() {
         JPanel footer = new JPanel(new BorderLayout(8, 7));
         footer.setOpaque(false);
-        JPanel lower = new JPanel(new GridLayout(1, 2, 8, 0));
+        JPanel lower = new JPanel(new GridLayout(1, 3, 8, 0));
         lower.setOpaque(false);
-        lower.setPreferredSize(new Dimension(0, 180));
+        lower.setPreferredSize(new Dimension(0, 230));
         JPanel trace = card("FETCH -> DECODE -> EXECUTE");
         trace.setLayout(new BorderLayout());
         configureTextArea(traceArea, true);
@@ -308,7 +302,11 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
         logs.setLayout(new BorderLayout());
         configureTextArea(logArea, true);
         logs.add(new JScrollPane(logArea), BorderLayout.CENTER);
+        JPanel scheduler = card("PROCESS SCHEDULER (FCFS)");
+        scheduler.setLayout(new BorderLayout());
+        scheduler.add(schedulerPanel, BorderLayout.CENTER);
         lower.add(trace);
+        lower.add(scheduler);
         lower.add(logs);
         statusBar.setOpaque(true);
         statusBar.setBackground(new Color(225, 235, 244));
@@ -349,40 +347,144 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
         area.setForeground(INK);
     }
 
-    private void populateProgram() {
+    // Shows the given Core-format program (e.g. "MOV_A_DATA:10;HALT") in the program memory list.
+    private void showProgram(String coreProgram) {
+        String[] instructions = coreProgram.split(";");
+        displayProgram = new String[instructions.length];
         programModel.clear();
-        for (int i = 0; i < DISPLAY_PROGRAM.length; i++) {
-            programModel.addElement(String.format("%04X   %s", i, DISPLAY_PROGRAM[i]));
+        for (int i = 0; i < instructions.length; i++) {
+            displayProgram[i] = toDisplay(instructions[i]);
+            programModel.addElement(String.format("%04X   %s", i, displayProgram[i]));
         }
     }
 
+    private String programOf(String processName) {
+        for (String[] p : DEMO_PROCESSES) if (p[0].equals(processName)) return p[2];
+        return null;
+    }
+
+    // "MOV_RN_DATA:R1,3" -> "MOV R1,#3"
+    private String toDisplay(String core) {
+        String[] parts = core.trim().split(":", 2);
+        String ops = parts.length > 1 ? parts[1].trim() : "";
+        switch (parts[0]) {
+            case "MOV_A_DATA":  return "MOV A,#" + ops;
+            case "MOV_RN_DATA": return "MOV " + ops.replace(",", ",#");
+            case "ADD": case "SUBB": case "ANL": return parts[0] + " A," + ops;
+            default: return ops.isEmpty() ? parts[0] : parts[0] + " " + ops;
+        }
+    }
+
+    // The Core and Logging processes may start before, after, or be restarted independently
+    // of the UI, so each connection is retried in the background until it is established.
+    private final app.ServiceSpawner spawner = new app.ServiceSpawner(CORE_PORT, LOGGER_PORT);
+    private final java.util.concurrent.atomic.AtomicBoolean coreConnecting = new java.util.concurrent.atomic.AtomicBoolean();
+    private final java.util.concurrent.atomic.AtomicBoolean loggerConnecting = new java.util.concurrent.atomic.AtomicBoolean();
+
     private void connectInBackground() {
-        tcpClient.setMessageListener(this);
+        tcpClient.setMessageListener(tcpListener);
+        connectCoreWithRetry();
+        connectLoggerWithRetry();
+    }
+
+    private void connectCoreWithRetry() {
+        if (!coreConnecting.compareAndSet(false, true)) return;
         Thread connector = new Thread(() -> {
-            boolean core = tcpClient.connectCore();
-            boolean logger = tcpClient.connectLogger();
+            int attempt = 0;
+            while (!tcpClient.connectCore()) {
+                attempt++;
+                final int n = attempt;
+                final String error = tcpClient.getLastError();
+                final String spawnNote = autoStartServices(n);
+                SwingUtilities.invokeLater(() -> {
+                    coreStatus.setText("Core: Disconnected");
+                    setStatus("Core not reachable on 127.0.0.1:" + CORE_PORT + " (attempt " + n + "). Retrying…");
+                    if (n == 1 || n % 5 == 0) logLine("UI: Core connect failed: " + error);
+                    if (spawnNote != null) logLine("UI: " + spawnNote);
+                });
+                try { Thread.sleep(1500); } catch (InterruptedException e) { return; }
+            }
+            coreConnecting.set(false);
             SwingUtilities.invokeLater(() -> {
-                coreStatus.setText(core ? "Core: Connected" : "Core: Disconnected");
-                loggerStatus.setText(logger ? "Logger: Connected" : "Logger: Disconnected");
-                setStatus(core ? "Connected; waiting for Core readiness." : "Core is unavailable. Start it and reopen the simulator.");
-                if (logger) logLine("Logger connection established.");
-                else logLine("Logger connection unavailable.");
+                coreStatus.setText("Core: Connected");
+                setStatus("Connected to Core on port " + CORE_PORT + "; waiting for it to report ready.");
             });
-        }, "simulator-connect");
+        }, "simulator-core-connect");
         connector.setDaemon(true);
         connector.start();
     }
 
+    private void connectLoggerWithRetry() {
+        if (!loggerConnecting.compareAndSet(false, true)) return;
+        Thread connector = new Thread(() -> {
+            while (!tcpClient.connectLogger()) {
+                SwingUtilities.invokeLater(() -> loggerStatus.setText("Logger: Disconnected"));
+                try { Thread.sleep(1500); } catch (InterruptedException e) { return; }
+            }
+            loggerConnecting.set(false);
+            SwingUtilities.invokeLater(() -> {
+                loggerStatus.setText("Logger: Connected");
+                logLine("Logger connection established.");
+            });
+            // Keep watching: if the Logging process goes away, reconnect when it returns.
+            while (tcpClient.isLoggerConnected()) {
+                try { Thread.sleep(1000); } catch (InterruptedException e) { return; }
+            }
+            loggerConnecting.set(false);
+            SwingUtilities.invokeLater(() -> {
+                loggerStatus.setText("Logger: Disconnected");
+                connectLoggerWithRetry();
+            });
+        }, "simulator-logger-connect");
+        connector.setDaemon(true);
+        connector.start();
+    }
+
+    // No Core answering after a few seconds: start the Core (and Logger) as separate processes
+    // ourselves, once. Returns a note for the system log, or null.
+    private String autoStartServices(int attempt) {
+        try {
+            if (attempt == 2 && !tcpClient.isLoggerConnected() && spawner.startLogger()) {
+                return "Logging process not running - started it automatically.";
+            }
+            if (attempt == 3 && spawner.startCore()) {
+                return "Core process not running - started it automatically on port " + CORE_PORT + ".";
+            }
+            if (spawner.coreDied()) {
+                return "The Core process I started exited with code " + spawner.coreExitCode()
+                        + " (port " + CORE_PORT + " in use? see console output).";
+            }
+        } catch (java.io.IOException ex) {
+            return "Could not start service process: " + ex.getMessage();
+        }
+        return null;
+    }
+
+    // Every button goes through this so a click is never silently ignored.
+    private boolean requireCore(String action) {
+        if (isCoreConnected()) return true;
+        String why = !tcpClient.isCoreConnected()
+                ? "Core process is not connected (port " + CORE_PORT + ")"
+                : "Core has not reported ready yet";
+        setStatus("Cannot " + action + ": " + why + ".");
+        logLine("UI: cannot " + action + " - " + why);
+        return false;
+    }
+
     private void loadProgram() {
-        if (!isCoreConnected()) return;
+        if (!requireCore("load")) return;
         clearReportedValues();
-        tcpClient.sendToCore("LOAD|" + String.join(";", CORE_PROGRAM));
-        sendLog("LOAD requested");
-        setStatus("Program load requested.");
+        tcpClient.sendToCore(DemoWorkload.loadCommand());
+        sendLog("LOAD requested: " + DEMO_PROCESSES.length + " processes (FCFS)");
+        setStatus("Process load requested.");
     }
 
     private void runProgram() {
-        if (!isCoreConnected()) return;
+        if (!requireCore("run")) return;
+        if (!programLoaded) {
+            setStatus("Nothing to run: press LOAD first.");
+            return;
+        }
         if ("false".equalsIgnoreCase(stateText("RUNNING")) || "0".equals(stateText("RUNNING"))) {
             setStatus("Core has not reported that the program is running.");
             return;
@@ -394,15 +496,15 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
 
     private void resetProgram() {
         runTimer.stop();
-        if (!isCoreConnected()) return;
+        if (!requireCore("reset")) return;
         tcpClient.sendToCore("RESET");
         sendLog("RESET requested");
         setStatus("Reset requested.");
     }
 
     private void sendCore(String command) {
-        if (!isCoreConnected()) {
-            setStatus("Core is not connected.");
+        if (!requireCore(command.toLowerCase())) {
+            runTimer.stop();
             return;
         }
         tcpClient.sendToCore(command);
@@ -423,23 +525,30 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
             coreStatus.setText(connected ? "Core: Connected" : "Core: Disconnected");
             if (!connected) {
                 runTimer.stop();
-                setStatus("Core connection lost.");
+                programLoaded = false;
+                setStatus("Core connection lost. Reconnecting…");
+                connectCoreWithRetry();
             }
         });
     }
 
     private void processCoreMessage(String message) {
+        if (message.startsWith("PROCS|")) {
+            schedulerPanel.update(parseFields(message));
+            return;
+        }
         logLine("Core: " + message);
         sendLog("CORE -> UI: " + message);
-        if ("CORE_READY".equals(message)) {
+        if (message.startsWith("CORE_READY")) {
             coreReady = true;
-            coreStatus.setText("Core: Ready");
+            Map<String, String> ready = parseFields(message);
+            coreStatus.setText("Core: Ready" + (ready.containsKey("PID") ? " (pid " + ready.get("PID") + ")" : ""));
             setStatus("Core is ready. Load the program to begin.");
             return;
         }
         if (message.startsWith("LOADED")) {
             programLoaded = true;
-            populateProgram();
+            showProgram(DEMO_PROCESSES[0][2]);
             Map<String, String> fields = parseFields(message);
             updateFields(fields);
             selectInstruction(parseInteger(fields.get("PC"), -1), null);
@@ -454,6 +563,8 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
             updateFields(fields);
             if (programLoaded) selectInstruction(parseInteger(fields.get("PC"), -1), null);
             chip.reset();
+            schedulerPanel.clear();
+            if (programLoaded) showProgram(DEMO_PROCESSES[0][2]);
             setResponse("RESET");
             setStatus("Core reported reset.");
             return;
@@ -465,13 +576,42 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
             stateValues.get("RUNNING").setText("false");
             setResponse("HALTED");
             chip.setInstruction("HALTED");
-            setStatus("Core reported that execution halted.");
+            setStatus("All processes finished. Press RESET to run them again.");
             return;
         }
         if (message.startsWith("ERROR")) {
             runTimer.stop();
             setResponse("ERROR");
             setStatus(message);
+            return;
+        }
+        if (message.startsWith("DISPATCH")) {
+            Map<String, String> fields = parseFields(message);
+            String program = programOf(fields.get("PNAME"));
+            if (program != null) showProgram(program);
+            programList.clearSelection();
+            setStatus("Dispatched " + fields.get("PNAME") + " at t=" + fields.get("CLOCK")
+                    + " (waited " + fields.get("WAITED") + ").");
+            appendTrace("DISPATCH: " + fields.get("PNAME") + " gets the CPU");
+            return;
+        }
+        if (message.startsWith("CONTEXT_SWITCH")) {
+            Map<String, String> fields = parseFields(message);
+            appendTrace("CONTEXT SWITCH: " + fields.get("FROM") + " -> " + fields.get("TO"));
+            setResponse("CONTEXT SWITCH");
+            return;
+        }
+        if (message.startsWith("ADMIT")) {
+            appendTrace("ADMIT: " + parseFields(message).get("PNAME") + " joins the ready queue");
+            return;
+        }
+        if (message.startsWith("TERMINATE")) {
+            appendTrace("TERMINATE: " + parseFields(message).get("PNAME") + " finished");
+            return;
+        }
+        if (message.startsWith("IDLE")) {
+            setResponse("IDLE");
+            setStatus("CPU idle: no process has arrived yet.");
             return;
         }
         if (message.startsWith("STEP")) processStep(message);
@@ -489,13 +629,13 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
             instructionCategory.setText("Category: " + categoryFor(instruction));
         }
         setResponse("STEP");
-        if (fields.containsKey("OLD_PC")) appendTrace("FETCH   ✓ : PC = " + fields.get("OLD_PC"));
+        if (fields.containsKey("OLD_PC")) appendTrace("FETCH   ✓ : " + fields.getOrDefault("PNAME", "") + " PC = " + fields.get("OLD_PC"));
         if (instruction != null) appendTrace("DECODE  ✓ : " + instruction);
         if (instruction != null) appendTrace("EXECUTE ✓ : " + instruction);
         appendReportedTraceFields(fields);
         if ("0".equals(fields.get("RUNNING"))) {
             runTimer.stop();
-            setStatus("Core reported that execution has halted.");
+            setStatus("All processes finished. Press RESET to run them again.");
         } else {
             setStatus("Core step response received.");
         }
@@ -571,10 +711,10 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
     }
 
     private void selectInstruction(int index, String coreInstruction) {
-        if (index >= 0 && index < DISPLAY_PROGRAM.length) {
+        if (index >= 0 && index < displayProgram.length) {
             programList.setSelectedIndex(index);
             programList.ensureIndexIsVisible(index);
-            String text = coreInstruction == null ? DISPLAY_PROGRAM[index] : coreInstruction;
+            String text = coreInstruction == null ? displayProgram[index] : coreInstruction;
             currentInstruction.setText(text);
             instructionCategory.setText("Category: " + categoryFor(text));
             if (coreInstruction == null) chip.setInstruction(text);
@@ -623,6 +763,7 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
     private void setStatus(String text) { statusBar.setText("  " + text); }
 
     @Override public void dispose() {
+        spawner.stopAll();
         runTimer.stop();
         chip.stop();
         tcpClient.close();

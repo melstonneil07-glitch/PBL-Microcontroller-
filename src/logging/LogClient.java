@@ -39,11 +39,16 @@ public class LogClient implements AutoCloseable {
 
     // Connects to the Logging process. Call once at process startup.
     public synchronized void connect() throws IOException {
+        closeQuietly();
         socket = new Socket(host, port);
         writer = new PrintWriter(
                 new OutputStreamWriter(socket.getOutputStream()),
                 true /* autoFlush on println */
         );
+    }
+
+    public synchronized boolean isConnected() {
+        return writer != null && socket != null && !socket.isClosed();
     }
 
     public void debug(String message) { send(LogLevel.DEBUG, message); }
@@ -54,22 +59,31 @@ public class LogClient implements AutoCloseable {
     // Thread-safe: multiple threads within the same process (e.g. the
     // Core process's Swing/step thread and its own IPC listener thread)
     // can log concurrently without corrupting the socket stream.
-    public synchronized void send(LogLevel level, String message) {
+    // Returns false if the entry could not be delivered (not connected, or the
+    // Logging process went away), so callers can reconnect.
+    public synchronized boolean send(LogLevel level, String message) {
         if (writer == null) {
-            System.err.println("[LogClient:" + source + "] Not connected -- dropping log: " + message);
-            return;
+            return false;
         }
         LogMessage msg = new LogMessage(Instant.now(), source, level, message);
         writer.println(msg.serialize());
+        if (writer.checkError()) {      // PrintWriter swallows IOExceptions; this reveals them
+            closeQuietly();
+            return false;
+        }
+        return true;
+    }
+
+    private void closeQuietly() {
+        try {
+            if (socket != null) socket.close();
+        } catch (IOException ignored) {
+        }
+        writer = null;
     }
 
     @Override
     public synchronized void close() {
-        try {
-            if (socket != null) {
-                socket.close();
-            }
-        } catch (IOException ignored) {
-        }
+        closeQuietly();
     }
 }
