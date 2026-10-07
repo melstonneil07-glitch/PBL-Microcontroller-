@@ -43,6 +43,9 @@ public class CPU {
 
         instructionTable.put("MOV_A_DATA", "Data Transfer");
         instructionTable.put("MOV_RN_DATA", "Data Transfer");
+        instructionTable.put("MOV_DIRECT_A", "Data Transfer");
+        instructionTable.put("MOV_A_DIRECT", "Data Transfer");
+        instructionTable.put("MOV_DIRECT_DATA", "Data Transfer");
         instructionTable.put("ADD", "Arithmetic");
         instructionTable.put("SUBB", "Arithmetic");
         instructionTable.put("ANL", "Logical Operation");
@@ -178,6 +181,28 @@ public class CPU {
                 int registerNumber = regIndex(register);
                 int value = Integer.parseInt(instr.operands.get(1));
                 r.set(registerNumber, value & 0xFF);
+                break;
+            }
+
+            // MOV direct,A  -- store the accumulator into data memory
+            case "MOV_DIRECT_A": {
+                int address = Integer.parseInt(instr.operands.get(0));
+                dataMemory.write(address, (byte) a);
+                break;
+            }
+
+            // MOV A,direct  -- load the accumulator from data memory
+            case "MOV_A_DIRECT": {
+                int address = Integer.parseInt(instr.operands.get(0));
+                a = dataMemory.read(address) & 0xFF;
+                break;
+            }
+
+            // MOV direct,#data  -- store an immediate value into data memory
+            case "MOV_DIRECT_DATA": {
+                int address = Integer.parseInt(instr.operands.get(0));
+                int value = Integer.parseInt(instr.operands.get(1));
+                dataMemory.write(address, (byte) (value & 0xFF));
                 break;
             }
 

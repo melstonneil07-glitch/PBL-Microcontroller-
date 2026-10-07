@@ -54,10 +54,10 @@ public class IpcSystemTest {
                 && !m.group(1).equals(m.group(3));
         check("IPC01b", "Logging, Core and UI are 3 distinct OS processes", distinct);
 
-        check("IPC01c", "FCFS results arrive at the UI (finish 14/20/26)",
-                out.contains("RESULT P1 state=TERMINATED arrival=0 start=0 finish=14")
-                && out.contains("RESULT P2 state=TERMINATED arrival=2 start=14 finish=20")
-                && out.contains("RESULT P3 state=TERMINATED arrival=4 start=20 finish=26"));
+        check("IPC01c", "FCFS results arrive at the UI (finish 16/23/31)",
+                out.contains("RESULT P1 state=TERMINATED arrival=0 start=0 finish=16")
+                && out.contains("RESULT P2 state=TERMINATED arrival=2 start=16 finish=23")
+                && out.contains("RESULT P3 state=TERMINATED arrival=4 start=23 finish=31"));
 
         String logText = Files.exists(log) ? new String(Files.readAllBytes(log), StandardCharsets.UTF_8) : "";
         check("IPC01d", "Log file has entries from both CORE and UI",
@@ -114,13 +114,17 @@ public class IpcSystemTest {
         c2.nextStartingWith("PROCS", 5);
         for (int i = 0; i < 6; i++) c2.send("STEP");
         List<String> clocks = new ArrayList<>();
+        List<String> stepReplies = new ArrayList<>();
         long deadline = System.currentTimeMillis() + 10000;
         while (clocks.size() < 6 && System.currentTimeMillis() < deadline) {
             String m = c2.next(2);
-            if (m != null && m.startsWith("STEP|")) clocks.add(field(m, "CLOCK"));
+            if (m != null && m.startsWith("STEP|")) { clocks.add(field(m, "CLOCK")); stepReplies.add(m); }
         }
         check("IPC04", "6 pipelined STEPs are served in order (CLOCK 1..6)",
                 clocks.equals(Arrays.asList("1", "2", "3", "4", "5", "6")));
+        check("IPC04b", "Data memory reaches the UI (MOV 30H,A -> MEMORY=48:13)",
+                stepReplies.size() == 6 && "".equals(field(stepReplies.get(2), "MEMORY"))
+                        && "48:13".equals(field(stepReplies.get(3), "MEMORY")));
         c2.send("SHUTDOWN");
         c2.close();
         core.waitFor(10);
@@ -176,7 +180,7 @@ public class IpcSystemTest {
         static Proc start(String name, String mainClass, String[] jvmArgs, String... args) throws IOException {
             List<String> cmd = new ArrayList<>();
             cmd.add(Paths.get(System.getProperty("java.home"), "bin", "java").toString());
-            cmd.add("-cp"); cmd.add(CP);
+            cmd.add("-cp"); cmd.add(ServiceSpawner.classPath());
             cmd.addAll(Arrays.asList(jvmArgs));
             cmd.add(mainClass);
             cmd.addAll(Arrays.asList(args));

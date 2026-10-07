@@ -25,7 +25,7 @@ public class Launcher {
 
     public static void main(String[] args) throws Exception {
         boolean console = false;
-        String logFile = "simulator.log";
+        String logFile = "logs.txt";
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("--console")) console = true;
             else if (args[i].equals("--log") && i + 1 < args.length) logFile = args[++i];
@@ -59,7 +59,7 @@ public class Launcher {
         List<String> cmd = new ArrayList<>();
         cmd.add(Paths.get(System.getProperty("java.home"), "bin", "java").toString());
         cmd.add("-cp");
-        cmd.add(System.getProperty("java.class.path"));
+        cmd.add(ServiceSpawner.classPath());
         for (String a : jvmArgs) cmd.add(a);
         cmd.add(mainClass);
         for (String a : programArgs) cmd.add(a);

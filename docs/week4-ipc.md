@@ -13,7 +13,7 @@
         | TCP 127.0.0.1:6061 (LogMessage format)                         | TCP 127.0.0.1:6061
         v                                                                v
  +----------------------------------------------------------------------------------+
- | Logging process  logging.LoggingServer  ->  simulator.log                        |
+ | Logging process  logging.LoggingServer  ->  logs.txt                        |
  +----------------------------------------------------------------------------------+
 ```
 

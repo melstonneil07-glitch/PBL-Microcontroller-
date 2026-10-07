@@ -40,8 +40,6 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
     private final JTextArea queueArea = new JTextArea();
     private final JTextArea memoryArea = new JTextArea();
     private final JTextArea traceArea = new JTextArea();
-    private final JTextArea logArea = new JTextArea();
-    private final SchedulerPanel schedulerPanel = new SchedulerPanel();
     // Display text of the program the CPU is currently running (changes on each dispatch).
     private String[] displayProgram = new String[0];
     private final TCPClient tcpClient = new TCPClient(HOST, CORE_PORT, LOGGER_PORT);
@@ -287,9 +285,9 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
     private JPanel createFooter() {
         JPanel footer = new JPanel(new BorderLayout(8, 7));
         footer.setOpaque(false);
-        JPanel lower = new JPanel(new GridLayout(1, 3, 8, 0));
+        JPanel lower = new JPanel(new GridLayout(1, 1, 8, 0));
         lower.setOpaque(false);
-        lower.setPreferredSize(new Dimension(0, 230));
+        lower.setPreferredSize(new Dimension(0, 180));
         JPanel trace = card("FETCH -> DECODE -> EXECUTE");
         trace.setLayout(new BorderLayout());
         configureTextArea(traceArea, true);
@@ -298,16 +296,7 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         traceScroll.getVerticalScrollBar().setUnitIncrement(16);
         trace.add(traceScroll, BorderLayout.CENTER);
-        JPanel logs = card("SYSTEM LOG");
-        logs.setLayout(new BorderLayout());
-        configureTextArea(logArea, true);
-        logs.add(new JScrollPane(logArea), BorderLayout.CENTER);
-        JPanel scheduler = card("PROCESS SCHEDULER (FCFS)");
-        scheduler.setLayout(new BorderLayout());
-        scheduler.add(schedulerPanel, BorderLayout.CENTER);
         lower.add(trace);
-        lower.add(scheduler);
-        lower.add(logs);
         statusBar.setOpaque(true);
         statusBar.setBackground(new Color(225, 235, 244));
         statusBar.setForeground(NAVY);
@@ -363,6 +352,11 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
         return null;
     }
 
+    private String hexAddress(String decimal) {
+        try { return String.format("%02XH", Integer.parseInt(decimal.trim())); }
+        catch (NumberFormatException e) { return decimal; }
+    }
+
     // "MOV_RN_DATA:R1,3" -> "MOV R1,#3"
     private String toDisplay(String core) {
         String[] parts = core.trim().split(":", 2);
@@ -370,6 +364,12 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
         switch (parts[0]) {
             case "MOV_A_DATA":  return "MOV A,#" + ops;
             case "MOV_RN_DATA": return "MOV " + ops.replace(",", ",#");
+            case "MOV_DIRECT_A": return "MOV " + hexAddress(ops) + ",A";
+            case "MOV_A_DIRECT": return "MOV A," + hexAddress(ops);
+            case "MOV_DIRECT_DATA": {
+                String[] o = ops.split(",", 2);
+                return "MOV " + hexAddress(o[0]) + ",#" + (o.length > 1 ? o[1].trim() : "0");
+            }
             case "ADD": case "SUBB": case "ANL": return parts[0] + " A," + ops;
             default: return ops.isEmpty() ? parts[0] : parts[0] + " " + ops;
         }
@@ -398,7 +398,7 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
                 final String spawnNote = autoStartServices(n);
                 SwingUtilities.invokeLater(() -> {
                     coreStatus.setText("Core: Disconnected");
-                    setStatus("Core not reachable on 127.0.0.1:" + CORE_PORT + " (attempt " + n + "). Retrying…");
+                    setStatus("Core not reachable on 127.0.0.1:" + CORE_PORT + " (attempt " + n + ": " + error + "). Retrying…");
                     if (n == 1 || n % 5 == 0) logLine("UI: Core connect failed: " + error);
                     if (spawnNote != null) logLine("UI: " + spawnNote);
                 });
@@ -451,8 +451,9 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
                 return "Core process not running - started it automatically on port " + CORE_PORT + ".";
             }
             if (spawner.coreDied()) {
+                String output = spawner.coreOutputTail();
                 return "The Core process I started exited with code " + spawner.coreExitCode()
-                        + " (port " + CORE_PORT + " in use? see console output).";
+                        + ". Its output: " + (output.isEmpty() ? "(none)" : output);
             }
         } catch (java.io.IOException ex) {
             return "Could not start service process: " + ex.getMessage();
@@ -534,10 +535,9 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
 
     private void processCoreMessage(String message) {
         if (message.startsWith("PROCS|")) {
-            schedulerPanel.update(parseFields(message));
-            return;
+            return;   // process table is not shown in the UI this week
+
         }
-        logLine("Core: " + message);
         sendLog("CORE -> UI: " + message);
         if (message.startsWith("CORE_READY")) {
             coreReady = true;
@@ -563,7 +563,6 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
             updateFields(fields);
             if (programLoaded) selectInstruction(parseInteger(fields.get("PC"), -1), null);
             chip.reset();
-            schedulerPanel.clear();
             if (programLoaded) showProgram(DEMO_PROCESSES[0][2]);
             setResponse("RESET");
             setStatus("Core reported reset.");
@@ -699,12 +698,12 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
     }
 
     private String formatMemory(String memory) {
-        if (memory == null || memory.isEmpty()) return "(all zero)";
+        if (memory == null || memory.isEmpty()) return "All 256 bytes are 00 (no store yet)";
         StringBuilder text = new StringBuilder();
         for (String entry : memory.split(",")) {
             String[] pair = entry.split(":", 2);
             if (text.length() > 0) text.append('\n');
-            if (pair.length == 2) text.append('[').append(pair[0]).append("] = ").append(pair[1]);
+            if (pair.length == 2) text.append(String.format("[%02XH] = %s", parseInteger(pair[0], 0), pair[1]));
             else text.append(entry);
         }
         return text.toString();
@@ -755,7 +754,11 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
     private String stateText(String key) { return stateValues.get(key).getText(); }
     private void sendLog(String message) { if (tcpClient.isLoggerConnected()) tcpClient.sendLog(message); }
     private void appendTrace(String text) { appendTo(traceArea, text); }
-    private void logLine(String text) { appendTo(logArea, text); }
+    // Diagnostics go to the console and, via the Logging process, into logs.txt (no on-screen log).
+    private void logLine(String text) {
+        System.out.println("[UI] " + text);
+        sendLog(text);
+    }
     private void appendTo(JTextArea area, String text) {
         area.append(text + "\n");
         area.setCaretPosition(area.getDocument().getLength());

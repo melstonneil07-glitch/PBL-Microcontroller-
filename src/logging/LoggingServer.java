@@ -43,7 +43,7 @@ public class LoggingServer {
 
     public static void main(String[] args) throws Exception {
         int port = args.length > 0 ? Integer.parseInt(args[0]) : DEFAULT_PORT;
-        Path logFile = args.length > 1 ? Paths.get(args[1]) : Paths.get("simulator.log");
+        Path logFile = args.length > 1 ? Paths.get(args[1]) : Paths.get("logs.txt");
 
         LoggingServer server = new LoggingServer(port, logFile);
         server.start();

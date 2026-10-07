@@ -39,6 +39,7 @@ public class CPUTest {
         testQueueFifoOrder();
         testQueueEmptyCondition();
         testQueueFullCondition();
+        testDataMemoryInstructions();
 
         System.out.println("--------------------------------------------------------------------------");
         System.out.println(passed + " / " + total + " test cases passed.");
@@ -259,5 +260,35 @@ public class CPUTest {
             threw = true;
         }
         check("TC15", "ENQUEUE on full queue", "true", threw);
+    }
+
+    // TC16: MOV direct,A / MOV A,direct / MOV direct,#data work through data memory
+    private static void testDataMemoryInstructions() {
+        CPU cpu = new CPU();
+        ArrayList<Instruction> program = new ArrayList<>();
+        program.add(new Instruction("MOV_A_DATA", Arrays.asList("42")));
+        program.add(new Instruction("MOV_DIRECT_A", Arrays.asList("48")));          // [48] = A
+        program.add(new Instruction("MOV_DIRECT_DATA", Arrays.asList("49", "200"))); // [49] = 200
+        program.add(new Instruction("MOV_A_DATA", Arrays.asList("0")));
+        program.add(new Instruction("MOV_A_DIRECT", Arrays.asList("48")));          // A = [48]
+        program.add(new Instruction("HALT", Collections.emptyList()));
+        cpu.loadProgram(program);
+        cpu.run();
+        check("TC16a", "MOV direct,A stores A in data memory", "42", cpu.readDataMemory(48));
+        check("TC16b", "MOV direct,#data stores immediate", "200", cpu.readDataMemory(49));
+        check("TC16c", "MOV A,direct loads A from memory", "42", cpu.getA());
+        check("TC16d", "Snapshot reports non-zero data memory", "2", cpu.getSnapshot().nonZeroMemory.size());
+
+        CPU bad = new CPU();
+        ArrayList<Instruction> badProgram = new ArrayList<>();
+        badProgram.add(new Instruction("MOV_DIRECT_A", Arrays.asList("300")));       // outside 0-255
+        bad.loadProgram(badProgram);
+        boolean threw = false;
+        try {
+            bad.step();
+        } catch (IllegalArgumentException e) {
+            threw = true;
+        }
+        check("TC16e", "Invalid data memory address rejected", "true", threw);
     }
 }

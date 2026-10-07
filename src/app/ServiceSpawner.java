@@ -1,6 +1,12 @@
 package app;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
+import java.util.LinkedHashSet;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,11 +19,12 @@ import java.util.List;
 public final class ServiceSpawner {
 
     private final List<Process> children = new ArrayList<>();
+    private final ArrayDeque<String> coreTail = new ArrayDeque<>();   // last lines the Core process printed
     private Process core;
     private Process logger;
     private final int corePort;
     private final int logPort;
-    private String logFile = System.getProperty("sim.logFile", "simulator.log");
+    private String logFile = System.getProperty("sim.logFile", "logs.txt");
 
     public ServiceSpawner(int corePort, int logPort) {
         this.corePort = corePort;
@@ -35,7 +42,7 @@ public final class ServiceSpawner {
     public synchronized boolean startCore() throws IOException {
         if (core != null) return false;
         core = spawn("cpu_core.CoreProcess",
-                new String[]{"-Dsim.corePort=" + corePort, "-Dsim.logPort=" + logPort});
+                new String[]{"-Dsim.corePort=" + corePort, "-Dsim.logPort=" + logPort}, coreTail);
         return true;
     }
 
@@ -56,16 +63,66 @@ public final class ServiceSpawner {
         children.clear();
     }
 
+    /** Last few lines the Core process printed (shown in the UI log when it dies). */
+    public synchronized String coreOutputTail() {
+        return String.join(" / ", coreTail);
+    }
+
     private Process spawn(String mainClass, String[] jvmArgs, String... args) throws IOException {
+        return spawn(mainClass, jvmArgs, null, args);
+    }
+
+    private Process spawn(String mainClass, String[] jvmArgs, ArrayDeque<String> tail, String... args) throws IOException {
         List<String> cmd = new ArrayList<>();
         cmd.add(Paths.get(System.getProperty("java.home"), "bin", "java").toString());
         cmd.add("-cp");
-        cmd.add(System.getProperty("java.class.path"));
+        cmd.add(classPath());
         for (String a : jvmArgs) cmd.add(a);
         cmd.add(mainClass);
         for (String a : args) cmd.add(a);
-        Process p = new ProcessBuilder(cmd).inheritIO().start();
+        Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();
         children.add(p);
+        String tag = mainClass.substring(mainClass.lastIndexOf('.') + 1);
+        Thread pump = new Thread(() -> {
+            try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = r.readLine()) != null) {
+                    System.out.println("[" + tag + "] " + line);
+                    if (tail != null) synchronized (this) {
+                        tail.addLast(line);
+                        while (tail.size() > 6) tail.removeFirst();
+                    }
+                }
+            } catch (IOException ignored) {
+            }
+        }, "pump-" + tag);
+        pump.setDaemon(true);
+        pump.start();
         return p;
+    }
+
+    /**
+     * Classpath for child JVMs. java.class.path alone is unreliable (IDEs may use a temporary
+     * manifest jar, relative entries or the module path), so first add the absolute location each
+     * simulator class was actually loaded from, then every entry the UI itself was started with.
+     */
+    public static String classPath() {
+        LinkedHashSet<String> parts = new LinkedHashSet<>();
+        Class<?>[] anchors = {ServiceSpawner.class, cpu_core.CoreProcess.class,
+                logging.LoggingServer.class, gui.TCPClient.class};
+        for (Class<?> c : anchors) {
+            try {
+                parts.add(new File(c.getProtectionDomain().getCodeSource().getLocation().toURI()).getAbsolutePath());
+            } catch (Exception ignored) {
+                // no code source (unusual loader): fall back to the property below
+            }
+        }
+        for (String property : new String[]{"java.class.path", "jdk.module.path"}) {
+            String value = System.getProperty(property, "");
+            for (String entry : value.split(File.pathSeparator)) {
+                if (!entry.isEmpty()) parts.add(new File(entry).getAbsolutePath());
+            }
+        }
+        return String.join(File.pathSeparator, parts);
     }
 }
