@@ -54,16 +54,15 @@ public class IpcSystemTest {
                 && !m.group(1).equals(m.group(3));
         check("IPC01b", "Logging, Core and UI are 3 distinct OS processes", distinct);
 
-        check("IPC01c", "FCFS results arrive at the UI (finish 16/23/31)",
+        check("IPC01c", "Program runs exactly 16 instructions, then stops",
                 out.contains("RESULT P1 state=TERMINATED arrival=0 start=0 finish=16")
-                && out.contains("RESULT P2 state=TERMINATED arrival=2 start=16 finish=23")
-                && out.contains("RESULT P3 state=TERMINATED arrival=4 start=23 finish=31"));
+                && !out.contains("RESULT P2"));
 
         String logText = Files.exists(log) ? new String(Files.readAllBytes(log), StandardCharsets.UTF_8) : "";
         check("IPC01d", "Log file has entries from both CORE and UI",
                 logText.contains("[CORE]") && logText.contains("[UI]"));
-        check("IPC01e", "Log file records 3 TERMINATE and 2 CONTEXT_SWITCH events",
-                count(logText, "SCHED TERMINATE") == 3 && count(logText, "SCHED CONTEXT_SWITCH") == 2);
+        check("IPC01e", "Log file records 1 TERMINATE and no CONTEXT_SWITCH",
+                count(logText, "SCHED TERMINATE") == 1 && count(logText, "SCHED CONTEXT_SWITCH") == 0);
     }
 
     private static void testStartOrder(Path dir) throws Exception {
@@ -79,7 +78,7 @@ public class IpcSystemTest {
         Thread.sleep(1500);   // let the Core's forwarder deliver
         String logText = Files.exists(log) ? new String(Files.readAllBytes(log), StandardCharsets.UTF_8) : "";
         check("IPC02b", "Core logs queued before the Logger existed are delivered",
-                logText.contains("Loaded 3 process(es)") && logText.contains("SCHED TERMINATE PID=3"));
+                logText.contains("Loaded 1 process(es)") && logText.contains("SCHED TERMINATE PID=1"));
         core.stop();
         logger.stop();
     }

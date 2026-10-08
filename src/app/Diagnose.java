@@ -91,7 +91,7 @@ public class Diagnose {
         String m = next(inbox, "CORE_READY", 5);
         report(m != null, m != null ? "Core said hello: " + m : "Core did not send CORE_READY");
         ui.sendToCore(DemoWorkload.loadCommand());
-        report(next(inbox, "LOADED", 5) != null, "LOADPROCS acknowledged (3 processes loaded)");
+        report(next(inbox, "LOADED", 5) != null, "LOAD acknowledged (program loaded)");
         String step = null;
         for (int i = 0; i < 3; i++) { ui.sendToCore("STEP"); step = next(inbox, "STEP", 5); }
         report(step != null, step != null ? "STEP executed by the CPU: " + step.replaceAll("\\|STACK=.*", "") : "no reply to STEP");
