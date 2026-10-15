@@ -54,8 +54,8 @@ public class IpcSystemTest {
                 && !m.group(1).equals(m.group(3));
         check("IPC01b", "Logging, Core and UI are 3 distinct OS processes", distinct);
 
-        check("IPC01c", "Program runs exactly 16 instructions, then stops",
-                out.contains("RESULT P1 state=TERMINATED arrival=0 start=0 finish=16")
+        check("IPC01c", "Program runs exactly 14 instructions, then stops",
+                out.contains("RESULT P1 state=TERMINATED arrival=0 start=0 finish=14")
                 && !out.contains("RESULT P2"));
 
         String logText = Files.exists(log) ? new String(Files.readAllBytes(log), StandardCharsets.UTF_8) : "";
@@ -121,9 +121,10 @@ public class IpcSystemTest {
         }
         check("IPC04", "6 pipelined STEPs are served in order (CLOCK 1..6)",
                 clocks.equals(Arrays.asList("1", "2", "3", "4", "5", "6")));
-        check("IPC04b", "Data memory reaches the UI (MOV 30H,A -> MEMORY=48:13)",
-                stepReplies.size() == 6 && "".equals(field(stepReplies.get(2), "MEMORY"))
-                        && "48:13".equals(field(stepReplies.get(3), "MEMORY")));
+        check("IPC04b", "Data memory reaches the UI (R1 at 01H, pushed A at 08H)",
+                stepReplies.size() == 6 && "".equals(field(stepReplies.get(0), "MEMORY"))
+                        && "1:3".equals(field(stepReplies.get(1), "MEMORY"))
+                        && "1:3,8:13".equals(field(stepReplies.get(3), "MEMORY")));
         c2.send("SHUTDOWN");
         c2.close();
         core.waitFor(10);

@@ -352,11 +352,6 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
         return null;
     }
 
-    private String hexAddress(String decimal) {
-        try { return String.format("%02XH", Integer.parseInt(decimal.trim())); }
-        catch (NumberFormatException e) { return decimal; }
-    }
-
     // "MOV_RN_DATA:R1,3" -> "MOV R1,#3"
     private String toDisplay(String core) {
         String[] parts = core.trim().split(":", 2);
@@ -364,12 +359,6 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
         switch (parts[0]) {
             case "MOV_A_DATA":  return "MOV A,#" + ops;
             case "MOV_RN_DATA": return "MOV " + ops.replace(",", ",#");
-            case "MOV_DIRECT_A": return "MOV " + hexAddress(ops) + ",A";
-            case "MOV_A_DIRECT": return "MOV A," + hexAddress(ops);
-            case "MOV_DIRECT_DATA": {
-                String[] o = ops.split(",", 2);
-                return "MOV " + hexAddress(o[0]) + ",#" + (o.length > 1 ? o[1].trim() : "0");
-            }
             case "ADD": case "SUBB": case "ANL": return parts[0] + " A," + ops;
             default: return ops.isEmpty() ? parts[0] : parts[0] + " " + ops;
         }
@@ -698,12 +687,17 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
     }
 
     private String formatMemory(String memory) {
-        if (memory == null || memory.isEmpty()) return "All 256 bytes are 00 (no store yet)";
+        if (memory == null || memory.isEmpty()) return "All 256 bytes are 00";
         StringBuilder text = new StringBuilder();
         for (String entry : memory.split(",")) {
             String[] pair = entry.split(":", 2);
             if (text.length() > 0) text.append('\n');
-            if (pair.length == 2) text.append(String.format("[%02XH] = %s", parseInteger(pair[0], 0), pair[1]));
+            if (pair.length == 2) {
+                int address = parseInteger(pair[0], 0);
+                // 8051 internal RAM: 00H-07H = register bank 0 (R0-R7), 08H+ = stack
+                String owner = address < 8 ? "R" + address : "stack";
+                text.append(String.format("[%02XH] = %-4s (%s)", address, pair[1], owner));
+            }
             else text.append(entry);
         }
         return text.toString();

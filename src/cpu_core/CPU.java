@@ -43,9 +43,6 @@ public class CPU {
 
         instructionTable.put("MOV_A_DATA", "Data Transfer");
         instructionTable.put("MOV_RN_DATA", "Data Transfer");
-        instructionTable.put("MOV_DIRECT_A", "Data Transfer");
-        instructionTable.put("MOV_A_DIRECT", "Data Transfer");
-        instructionTable.put("MOV_DIRECT_DATA", "Data Transfer");
         instructionTable.put("ADD", "Arithmetic");
         instructionTable.put("SUBB", "Arithmetic");
         instructionTable.put("ANL", "Logical Operation");
@@ -181,28 +178,6 @@ public class CPU {
                 int registerNumber = regIndex(register);
                 int value = Integer.parseInt(instr.operands.get(1));
                 r.set(registerNumber, value & 0xFF);
-                break;
-            }
-
-            // MOV direct,A  -- store the accumulator into data memory
-            case "MOV_DIRECT_A": {
-                int address = Integer.parseInt(instr.operands.get(0));
-                dataMemory.write(address, (byte) a);
-                break;
-            }
-
-            // MOV A,direct  -- load the accumulator from data memory
-            case "MOV_A_DIRECT": {
-                int address = Integer.parseInt(instr.operands.get(0));
-                a = dataMemory.read(address) & 0xFF;
-                break;
-            }
-
-            // MOV direct,#data  -- store an immediate value into data memory
-            case "MOV_DIRECT_DATA": {
-                int address = Integer.parseInt(instr.operands.get(0));
-                int value = Integer.parseInt(instr.operands.get(1));
-                dataMemory.write(address, (byte) (value & 0xFF));
                 break;
             }
 
@@ -433,11 +408,23 @@ public class CPU {
             registers[i] = r.get(i);
         }
 
+        // Internal RAM as on the 8051 core: 00H-07H is register bank 0 (R0-R7), the stack
+        // lives from 08H upward (SP resets to 07H); any other byte comes from data memory.
+        int[] ram = new int[256];
+        for (int addr = 0; addr < 256; addr++) {
+            ram[addr] = readDataMemory(addr);
+        }
+        for (int i = 0; i < 8; i++) {
+            ram[i] = r.get(i) & 0xFF;
+        }
+        ArrayList<Integer> pushed = stack.snapshot();      // bottom -> top, starting at 08H
+        for (int i = 0; i < pushed.size(); i++) {
+            ram[0x08 + i] = pushed.get(i);
+        }
         List<int[]> nonZeroMemory = new ArrayList<>();
         for (int addr = 0; addr < 256; addr++) {
-            int value = readDataMemory(addr);
-            if (value != 0) {
-                nonZeroMemory.add(new int[]{addr, value});
+            if (ram[addr] != 0) {
+                nonZeroMemory.add(new int[]{addr, ram[addr]});
             }
         }
 
