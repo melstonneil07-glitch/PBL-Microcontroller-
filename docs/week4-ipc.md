@@ -2,20 +2,7 @@
 
 ## Architecture
 
-```
- +-------------+   commands (STEP, LOADPROCS, RESET)    +--------------------------------+
- | UI process  | -------------------------------------> | Core process                   |
- | gui.        |   TCP 127.0.0.1:6060, line protocol    | cpu_core.CoreProcess           |
- | MainWindow  | <------------------------------------- |  CPU, Memory, Stack, Queue,    |
- +------+------+   replies/events (STEP, PROCS, ...)    |  FCFS scheduler, PCBs          |
-        |                                                +---------------+----------------+
-        | log entries                                                    | log entries
-        | TCP 127.0.0.1:6061 (LogMessage format)                         | TCP 127.0.0.1:6061
-        v                                                                v
- +----------------------------------------------------------------------------------+
- | Logging process  logging.LoggingServer  ->  logs.txt                        |
- +----------------------------------------------------------------------------------+
-```
+![alt text](image.png)
 
 Flow: UI -> Core -> CPU / Memory / Stack / Queue -> Logger. Each box is its own JVM / OS process.
 

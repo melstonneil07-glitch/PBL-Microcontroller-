@@ -5,7 +5,6 @@
 **Participants: 4**
 
 ## Agenda:
-
 **1. Discussing Week 3 implementation progress.**
 
 **2. Discussing CPU, stack and queue implementation.**
@@ -15,7 +14,6 @@
 **4. Discussing GUI integration and testing.**
 
 ## Discussion:
-
 **1. Team discussed the progress of CPU and memory implementation completed during Week 2.**
 
 **2. Team discussed implementing and testing the stack and queue components.**
@@ -27,7 +25,6 @@
 **5. Team discussed testing CPU execution, stack operations, queue operations and GUI functionality.**
 
 ## Decisions:
-
 **1. Team decided to complete the CPU, stack and queue implementation.**
 
 **2. Team decided to use `CpuSnapshot` for transferring CPU state to the GUI.**
@@ -35,5 +32,14 @@
 **3. Team decided to integrate the CPU core with the GUI without directly accessing internal CPU components from the GUI.**
 
 **4. Team decided to test the integrated components and fix identified errors.**
+
+## Action items:
+**1. Melston Neil Albuquerque → Implemented week 3 tasks**
+
+**2. Disha N Poojary → No work done this week**
+
+**3. Vaishnavi →No work done this week**
+
+**4. Nischith Srinivasa Shetty → No work done this week**
 
 **Next meeting: 01-10-2026**
