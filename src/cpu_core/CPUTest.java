@@ -39,6 +39,7 @@ public class CPUTest {
         testQueueFifoOrder();
         testQueueEmptyCondition();
         testQueueFullCondition();
+        testInternalRamView();
 
         System.out.println("--------------------------------------------------------------------------");
         System.out.println(passed + " / " + total + " test cases passed.");
@@ -259,5 +260,32 @@ public class CPUTest {
             threw = true;
         }
         check("TC15", "ENQUEUE on full queue", "true", threw);
+    }
+
+    // TC16: data memory view = internal RAM (R0-R7 at 00H-07H, stack from 08H)
+    private static void testInternalRamView() {
+        CPU cpu = new CPU();
+        ArrayList<Instruction> program = new ArrayList<>();
+        program.add(new Instruction("MOV_RN_DATA", Arrays.asList("R1", "3")));
+        program.add(new Instruction("MOV_A_DATA", Arrays.asList("9")));
+        program.add(new Instruction("PUSH", Arrays.asList("A")));
+        program.add(new Instruction("HALT", Collections.emptyList()));
+        cpu.loadProgram(program);
+        cpu.step();
+        check("TC16a", "MOV R1,#3 -> RAM [01H]", "1:3", ramView(cpu));
+        cpu.step();
+        cpu.step();
+        check("TC16b", "PUSH A -> RAM [01H] and stack [08H]", "1:3,8:9", ramView(cpu));
+        cpu.run();
+        check("TC16c", "Registers survive HALT in the RAM view", "1:3,8:9", ramView(cpu));
+    }
+
+    private static String ramView(CPU cpu) {
+        StringBuilder sb = new StringBuilder();
+        for (int[] e : cpu.getSnapshot().nonZeroMemory) {
+            if (sb.length() > 0) sb.append(',');
+            sb.append(e[0]).append(':').append(e[1]);
+        }
+        return sb.toString();
     }
 }

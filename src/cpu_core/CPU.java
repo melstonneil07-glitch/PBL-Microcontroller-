@@ -30,9 +30,11 @@ public class CPU {
 
     // Memory
     private ArrayList<Instruction> programMemory = new ArrayList<>();
-    private final DataMemory dataMemory = new DataMemory();
-    private final StackMemory stack = new StackMemory();
-    private final QueueMemory queue = new QueueMemory();
+    // Not final: a context switch swaps in the incoming process's own
+    // data memory, stack and queue (see saveContext/restoreContext).
+    private DataMemory dataMemory = new DataMemory();
+    private StackMemory stack = new StackMemory();
+    private QueueMemory queue = new QueueMemory();
 
     // Instruction table
     private final HashMap<String, String> instructionTable = new HashMap<>();
@@ -64,6 +66,36 @@ public class CPU {
     public void loadProgram(ArrayList<Instruction> program) {
         this.programMemory = program;
         reset();
+    }
+
+
+    // ================= CONTEXT SWITCH (Week 4) =================
+
+    // Captures the running process's complete CPU state into a CpuContext
+    // (registers, PC, flags, and its own memory/stack/queue objects).
+    public CpuContext saveContext() {
+        int[] regs = new int[8];
+        for (int i = 0; i < 8; i++) {
+            regs[i] = r.get(i);
+        }
+        return new CpuContext(a, regs, pc, cy, ov, running,
+                programMemory, dataMemory, stack, queue);
+    }
+
+    // Loads a previously saved (or freshly created) context into the CPU.
+    public void restoreContext(CpuContext ctx) {
+        a = ctx.a;
+        for (int i = 0; i < 8; i++) {
+            r.set(i, ctx.registers[i]);
+        }
+        pc = ctx.pc;
+        cy = ctx.cy;
+        ov = ctx.ov;
+        running = ctx.running;
+        programMemory = ctx.program;
+        dataMemory = ctx.dataMemory;
+        stack = ctx.stack;
+        queue = ctx.queue;
     }
 
 
@@ -376,11 +408,23 @@ public class CPU {
             registers[i] = r.get(i);
         }
 
+        // Internal RAM as on the 8051 core: 00H-07H is register bank 0 (R0-R7), the stack
+        // lives from 08H upward (SP resets to 07H); any other byte comes from data memory.
+        int[] ram = new int[256];
+        for (int addr = 0; addr < 256; addr++) {
+            ram[addr] = readDataMemory(addr);
+        }
+        for (int i = 0; i < 8; i++) {
+            ram[i] = r.get(i) & 0xFF;
+        }
+        ArrayList<Integer> pushed = stack.snapshot();      // bottom -> top, starting at 08H
+        for (int i = 0; i < pushed.size(); i++) {
+            ram[0x08 + i] = pushed.get(i);
+        }
         List<int[]> nonZeroMemory = new ArrayList<>();
         for (int addr = 0; addr < 256; addr++) {
-            int value = readDataMemory(addr);
-            if (value != 0) {
-                nonZeroMemory.add(new int[]{addr, value});
+            if (ram[addr] != 0) {
+                nonZeroMemory.add(new int[]{addr, ram[addr]});
             }
         }
 

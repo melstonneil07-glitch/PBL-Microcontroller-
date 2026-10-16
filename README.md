@@ -61,7 +61,12 @@ Design and implement a software-based simulator for the assigned 8-bit microcont
 **Week 1 – Project Setup and Planning:**
 **Set up the public GitHub repository and folder structure, study the MS51FB9AE microcontroller architecture, finalize Java as the programming language, assign team responsibilities, design the initial simulator architecture, create relevant GitHub Issues, and complete the required project documentation and Week-1 review.**
 
-Week 2 – Initial Simulator Development:
-Develop the first working version of the microcontroller simulator in Java, implement the CPU core and registers, create the memory components, implement the basic FETCH–DECODE–EXECUTE cycle for the selected instructions, integrate the main simulator components, perform initial testing, and complete the Week-2 review and documentation.
+**Week 2 – Initial Simulator Development:**
+**Develop the first working version of the microcontroller simulator in Java, implement the CPU core and registers, create the memory components, implement the basic FETCH–DECODE–EXECUTE cycle for the selected instructions, integrate the main simulator components, perform initial testing, and complete the Week-2 review and documentation.**
 
+**Week 3 – Memory, Stack, and Queue Implementation:**
+**Implement Data Memory and Program Memory read/write operations, develop Stack Memory with Stack Pointer (SP), implement PUSH, POP, and Peek operations following LIFO ordering, develop FIFO Queue Memory with Enqueue and Dequeue operations, handle empty, underflow, overflow, and full conditions, integrate Memory, Stack, and Queue information into the simulator GUI, perform component and integration testing, and complete the Week-3 review and documentation.**
+
+**Week 4 – Inter-Process Communication and Process Integration:**
+**Separate the simulator into UI, Core, and Logging processes, investigate and select suitable inter-process communication (IPC) mechanisms, define communication interfaces between the processes, integrate CPU, Memory, Stack, and Queue into the Core Process, implement communication between the UI and Core processes, develop the Logging Process for execution and error logging, use threads where appropriate, perform IPC and integration testing, resolve communication and synchronization issues, and complete the Week-4 review and documentation.**
 

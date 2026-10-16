@@ -40,7 +40,6 @@
 **7. Nischith Srinivasa Shetty handles OS Scheduling & Context Switching.**
 
 ## Action items:
-
 **1. Melston Neil Albuquerque → CPU & Instruction Execution**
 
 **2. Disha N Poojary → GUI Implementation & Execution Trace**

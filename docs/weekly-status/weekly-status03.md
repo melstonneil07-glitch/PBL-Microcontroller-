@@ -106,7 +106,6 @@
 **3. Additional debugging and refinement where required.**
 
 ## Work Carried Forward:
-
 **1. Further GUI improvements.**
 
 **2. Further simulator integration.**
