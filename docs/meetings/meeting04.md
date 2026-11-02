@@ -52,7 +52,7 @@
 ## Action Items:
 **1. Melston Neil AlbuquerqueIntegrate → UI, Core, and Logging processes; perform system integration testing and benchmark execution time, IPC overhead, CPU usage, and memory usage.**
 
-**2. Disha N Poojary → Verify UI-to-Core TCP communication, command transmission, response handling, and UI reconnection.**
+**2. Disha N Poojary → Verify UI-to-Core TCP communication, command transmission, response handling, and UI reconnection.Make required updation in the ui design by adding 3d stimulator of the given microcontroller.**
 
 **3. Vaishnavi → Verify Core command processing, FIFO ordering, FCFS scheduling, PCB management, and CPU context switching.**
 
