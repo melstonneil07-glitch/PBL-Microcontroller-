@@ -54,6 +54,6 @@
 
 **2. Disha N Poojary → Verify UI-to-Core TCP communication, command transmission, response handling, and UI reconnection.Make required updation in the ui design by adding 3d stimulator of the given microcontroller.**
 
-**3. Vaishnavi → Verify Core command processing, FIFO ordering, FCFS scheduling, PCB management, and CPU context switching.**
+**3. Vaishnavi → Verify Core command processing, FIFO ordering, FCFS scheduling, PCB management, and CPU context switching.focused on implementing the Core Process and connecting it with the UI using Java TCP sockets. Modified CoreProcess.java and MainWindow.java to handle LOAD, STEP, RESET, and PING commands. Integrated CPU execution and CPU-state updates with the UI. Tested UI–Core communication**
 
 **4. Nischith Srinivasa Shetty → Verify Logging process communication, log message transmission, `BlockingQueue` synchronization, log file storage, and logging error handling.**
