@@ -20,7 +20,7 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
     private static final Color CANVAS = new Color(239, 244, 249);
     private static final Color INK = new Color(37, 55, 75);
     private static final Color MUTED = new Color(105, 123, 143);
-    private static final Color TEAL = new Color(16, 139, 151);
+    private static final Color TEAL = new Color(106, 139, 151);
 
     // The processes currently loaded in the Core. Starts as the built-in demo; LOAD replaces it
     // with whatever the user typed into the program editor.
