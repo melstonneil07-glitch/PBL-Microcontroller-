@@ -8,6 +8,7 @@ import java.util.Map;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import logging.LoggingServer;
+import gui.AssemblyParser;
 
 /** Displays the demonstration program and only state reported by the Core. */
 public final class MainWindow extends JFrame implements TCPClient.MessageListener {
@@ -21,10 +22,15 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
     private static final Color MUTED = new Color(105, 123, 143);
     private static final Color TEAL = new Color(16, 139, 151);
 
-    private static final String[][] DEMO_PROCESSES = DemoWorkload.PROCESSES;
+    // The processes currently loaded in the Core. Starts as the built-in demo; LOAD replaces it
+    // with whatever the user typed into the program editor.
+    private String[][] loadedProcesses = DemoWorkload.PROCESSES;
 
     private final DefaultListModel<String> programModel = new DefaultListModel<>();
     private final JList<String> programList = new JList<>(programModel);
+    // Program editor: the user types assembly here; LOAD assembles it and sends it to the Core.
+    private final JTextArea editorArea = new JTextArea(DemoWorkload.DEFAULT_ASSEMBLY);
+    private final JTabbedPane programTabs = new JTabbedPane();
     private final Chip3DPanel chip = new Chip3DPanel();
     private final Map<String, JLabel> stateValues = new LinkedHashMap<>();
     private final JLabel coreStatus = new JLabel("Core: Connecting…");
@@ -114,7 +120,7 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
     private JPanel createProgramAndControls() {
         JPanel column = new JPanel(new BorderLayout(8, 8));
         column.setOpaque(false);
-        column.setPreferredSize(new Dimension(300, 0));
+        column.setPreferredSize(new Dimension(340, 0));
 
         JPanel controls = card("SIMULATOR CONTROLS");
         controls.setLayout(new GridLayout(2, 2, 8, 8));
@@ -123,12 +129,24 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
         controls.add(actionButton("RUN", this::runProgram, new Color(41, 135, 91)));
         controls.add(actionButton("RESET", this::resetProgram, new Color(157, 83, 69)));
 
-        JPanel memory = card("PROGRAM MEMORY");
+        JPanel memory = card("PROGRAM");
         memory.setLayout(new BorderLayout(5, 8));
         programList.setFont(new Font("Consolas", Font.PLAIN, 13));
         programList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         programList.setBackground(new Color(250, 252, 254));
-        memory.add(new JScrollPane(programList), BorderLayout.CENTER);
+
+        editorArea.setFont(new Font("Consolas", Font.PLAIN, 13));
+        editorArea.setTabSize(4);
+        editorArea.setBackground(new Color(250, 252, 254));
+        editorArea.setForeground(INK);
+        editorArea.setToolTipText("<html>One instruction per line; ';' starts a comment; 'name:' defines a label.<br>"
+                + "MOV A,#n &nbsp; MOV Rn,#n &nbsp; ADD/SUBB/XRL A,Rn &nbsp; INC Rn<br>"
+                + "SJMP label|offset &nbsp; PUSH A|Rn|#n &nbsp; POP A|Rn<br>"
+                + "ENQUEUE A|Rn|#n &nbsp; DEQUEUE A|Rn &nbsp; HALT<br>"
+                + "Numbers: 10, 0x0A, 0AH, 0b1010</html>");
+        programTabs.addTab("Editor", new JScrollPane(editorArea));
+        programTabs.addTab("Memory", new JScrollPane(programList));
+        memory.add(programTabs, BorderLayout.CENTER);
 
         JPanel current = new JPanel(new GridLayout(0, 1, 0, 5));
         current.setOpaque(false);
@@ -348,7 +366,7 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
     }
 
     private String programOf(String processName) {
-        for (String[] p : DEMO_PROCESSES) if (p[0].equals(processName)) return p[2];
+        for (String[] p : loadedProcesses) if (p[0].equals(processName)) return p[2];
         return null;
     }
 
@@ -463,10 +481,36 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
 
     private void loadProgram() {
         if (!requireCore("load")) return;
+
+        // Assemble what the user typed in the editor.
+        AssemblyParser.Result assembled;
+        try {
+            assembled = AssemblyParser.parse(editorArea.getText());
+        } catch (AssemblyParser.AssemblyException ex) {
+            programTabs.setSelectedIndex(0);
+            moveEditorCaretToLine(ex.line);
+            setStatus("Cannot load: " + ex.getMessage());
+            logLine("UI: assembly error - " + ex.getMessage());
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Assembly error", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        runTimer.stop();
+        loadedProcesses = new String[][] {{"P1", "0", assembled.wire}};
         clearReportedValues();
-        tcpClient.sendToCore(DemoWorkload.loadCommand());
-        sendLog("LOAD requested: " + DEMO_PROCESSES.length + " processes (FCFS)");
-        setStatus("Process load requested.");
+        tcpClient.sendToCore(DemoWorkload.loadCommand(loadedProcesses));
+        programTabs.setSelectedIndex(1);
+        sendLog("LOAD requested: " + assembled.size + " instruction(s) from the editor (FCFS)");
+        setStatus("Program assembled (" + assembled.size + " instructions); load requested.");
+    }
+
+    private void moveEditorCaretToLine(int line) {
+        try {
+            editorArea.setCaretPosition(editorArea.getLineStartOffset(Math.max(0, line - 1)));
+            editorArea.requestFocusInWindow();
+        } catch (javax.swing.text.BadLocationException ignored) {
+            // line number outside the text: leave the caret where it is
+        }
     }
 
     private void runProgram() {
@@ -537,7 +581,7 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
         }
         if (message.startsWith("LOADED")) {
             programLoaded = true;
-            showProgram(DEMO_PROCESSES[0][2]);
+            showProgram(loadedProcesses[0][2]);
             Map<String, String> fields = parseFields(message);
             updateFields(fields);
             selectInstruction(parseInteger(fields.get("PC"), -1), null);
@@ -552,7 +596,7 @@ public final class MainWindow extends JFrame implements TCPClient.MessageListene
             updateFields(fields);
             if (programLoaded) selectInstruction(parseInteger(fields.get("PC"), -1), null);
             chip.reset();
-            if (programLoaded) showProgram(DEMO_PROCESSES[0][2]);
+            if (programLoaded) showProgram(loadedProcesses[0][2]);
             setResponse("RESET");
             setStatus("Core reported reset.");
             return;
